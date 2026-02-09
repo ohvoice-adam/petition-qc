@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Statistics - Petition QC{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Verification Progress</h1>
+        <div class="space-x-4">
+            <a href="{{ url_for('stats.enterers') }}" class="text-purple-400 hover:text-purple-300">
+                Enterer Stats
+            </a>
+            <a href="{{ url_for('stats.organizations') }}" class="text-purple-400 hover:text-purple-300">
+                Organization Stats
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="text-3xl font-bold text-white">{{ progress.entered }}</div>
+            <div class="text-gray-400 text-sm">Total Entered</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="text-3xl font-bold text-green-400">{{ progress.percent_verified }}%</div>
+            <div class="text-gray-400 text-sm">Percent Verified</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="text-3xl font-bold text-blue-400">{{ progress.percent_columbus }}%</div>
+            <div class="text-gray-400 text-sm">Columbus Addresses</div>
+        </div>
+        <div class="bg-gray-800 rounded-lg p-6">
+            <div class="text-3xl font-bold text-yellow-400">{{ progress.unmatched }}</div>
+            <div class="text-gray-400 text-sm">Unmatched</div>
+        </div>
+    </div>
+
+    <!-- Detailed breakdown -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Detailed Breakdown</h2>
+
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <span class="text-gray-300">Matched Columbus resident signatures</span>
+                <span class="text-green-400 font-bold">{{ progress.matched_columbus }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-gray-300">Matched non-Columbus resident signatures</span>
+                <span class="text-green-300 font-bold">{{ progress.matched_not_columbus }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-gray-300">Columbus address, no name match</span>
+                <span class="text-orange-400 font-bold">{{ progress.matched_incorrect }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-gray-300">Non-Columbus address, no name match</span>
+                <span class="text-orange-300 font-bold">{{ progress.matched_incorrect_not_columbus }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-gray-300">Unmatched signatures</span>
+                <span class="text-yellow-400 font-bold">{{ progress.unmatched }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Overall Progress</h2>
+        <div class="w-full bg-gray-700 rounded-full h-6 overflow-hidden">
+            {% set verified_pct = progress.percent_verified|float %}
+            {% set address_pct = ((progress.matched_incorrect + progress.matched_incorrect_not_columbus) * 100 / progress.entered)|float if progress.entered else 0 %}
+            <div class="h-full flex">
+                <div class="bg-green-500 h-full" style="width: {{ verified_pct }}%"></div>
+                <div class="bg-orange-500 h-full" style="width: {{ address_pct }}%"></div>
+            </div>
+        </div>
+        <div class="flex justify-between text-sm mt-2">
+            <span class="text-green-400">Verified ({{ progress.percent_verified }}%)</span>
+            <span class="text-orange-400">Address Only</span>
+            <span class="text-gray-400">Unmatched</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

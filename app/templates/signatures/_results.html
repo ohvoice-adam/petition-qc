@@ -1,0 +1,56 @@
+{% if message %}
+<div class="text-center text-gray-500 dark:text-gray-400 py-12">
+    {{ message }}
+</div>
+{% elif voters %}
+<div class="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <thead class="bg-gray-50 dark:bg-gray-900">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">First Name</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Name</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Street Address</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Apt</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">City</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ZIP</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for voter in voters %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <td class="px-4 py-3 whitespace-nowrap text-sm">{{ voter.first_name }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm">{{ voter.last_name }}</td>
+                <td class="px-4 py-3 text-sm">{{ voter.residential_address1 }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm">{{ voter.residential_address2 or '' }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm">{{ voter.residential_city }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm">{{ voter.residential_zip }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm space-x-2">
+                    <button hx-post="{{ url_for('signatures.record_match') }}"
+                            hx-vals='{"voter_id": "{{ voter.id }}"}'
+                            hx-target="#search-results"
+                            hx-swap="innerHTML"
+                            class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-1 px-3 rounded">
+                        Person Match
+                    </button>
+                    <button hx-post="{{ url_for('signatures.record_address_only') }}"
+                            hx-vals='{"voter_id": "{{ voter.id }}"}'
+                            hx-target="#search-results"
+                            hx-swap="innerHTML"
+                            class="bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium py-1 px-3 rounded">
+                        Address Only
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="mt-2 text-gray-500 dark:text-gray-400 text-sm">
+    {{ voters|length }} results found
+</div>
+{% else %}
+<div class="text-center text-gray-500 dark:text-gray-400 py-12">
+    No matching voters found
+</div>
+{% endif %}

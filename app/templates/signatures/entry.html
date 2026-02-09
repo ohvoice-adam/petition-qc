@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Signature Entry - Petition QC{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Session info bar -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-4 flex items-center justify-between shadow-sm">
+        <div class="flex items-center space-x-6">
+            <span class="text-gray-500 dark:text-gray-400">Book: <span class="text-gray-900 dark:text-white font-bold">{{ book_number }}</span></span>
+            <span class="text-gray-500 dark:text-gray-400">Date: <span class="text-gray-900 dark:text-white">{{ date_entered }}</span></span>
+        </div>
+        <form method="POST" action="{{ url_for('main.end_session') }}" class="inline">
+            <button type="submit" class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm">
+                End Session
+            </button>
+        </form>
+    </div>
+
+    <!-- Search form -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+        <div class="flex items-center space-x-4">
+            <div class="flex-1">
+                <input type="text"
+                       name="address"
+                       id="address-search"
+                       placeholder="Enter signer address..."
+                       autocomplete="off"
+                       class="w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-4 py-3 text-lg focus:border-purple-500 focus:ring-purple-500"
+                       hx-post="{{ url_for('signatures.search') }}"
+                       hx-trigger="keyup changed delay:150ms"
+                       hx-target="#search-results"
+                       hx-indicator="#search-spinner">
+            </div>
+            <button type="button"
+                    hx-post="{{ url_for('signatures.record_no_match') }}"
+                    hx-target="#search-results"
+                    hx-swap="innerHTML"
+                    class="bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-md">
+                No Match
+            </button>
+        </div>
+        <span id="search-spinner" class="htmx-indicator text-gray-500 dark:text-gray-400 mt-2 inline-block">
+            Searching...
+        </span>
+    </div>
+
+    <!-- Search results -->
+    <div id="search-results">
+        <!-- Results will be loaded here via HTMX -->
+        <div class="text-center text-gray-500 dark:text-gray-400 py-12">
+            Enter an address to search for matching voters
+        </div>
+    </div>
+</div>
+
+<script>
+// Focus search input on page load
+document.getElementById('address-search').focus();
+
+// Clear search and refocus after recording
+document.body.addEventListener('htmx:afterSwap', function(event) {
+    if (event.detail.target.id === 'search-results') {
+        // Check if this was a success response
+        const successEl = event.detail.target.querySelector('[data-success]');
+        if (successEl) {
+            // Clear and refocus the search input
+            const searchInput = document.getElementById('address-search');
+            searchInput.value = '';
+            searchInput.focus();
+        }
+    }
+});
+</script>
+{% endblock %}

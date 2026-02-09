@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Petition QC{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold text-center mb-8">CSC Petition Data Entry</h1>
+
+    {% if book_id and batch_id %}
+    <!-- Active session -->
+    <div class="bg-gray-800 rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4 text-green-400">Active Session</h2>
+        <p class="text-gray-300 mb-4">
+            Book: <span class="font-bold text-white">{{ book_number }}</span>
+        </p>
+        <div class="flex space-x-4">
+            <a href="{{ url_for('signatures.entry') }}"
+               class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md">
+                Continue Entry
+            </a>
+            <form method="POST" action="{{ url_for('main.end_session') }}" class="inline">
+                <button type="submit"
+                        class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md">
+                    End Session
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Start new session -->
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Start New Session</h2>
+
+        <form method="POST" action="{{ url_for('main.start_session') }}" class="space-y-4">
+            <div>
+                <label for="book_number" class="block text-sm font-medium text-gray-300">Book Number</label>
+                <input type="text" name="book_number" id="book_number" required
+                       class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
+                       placeholder="Enter book number">
+            </div>
+
+            <div>
+                <label for="collector_id" class="block text-sm font-medium text-gray-300">Collector</label>
+                <select name="collector_id" id="collector_id" required
+                        class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+                    <option value="">Select a collector...</option>
+                    {% for collector in collectors %}
+                    <option value="{{ collector.id }}">{{ collector.display_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="date_entered" class="block text-sm font-medium text-gray-300">Date</label>
+                <input type="date" name="date_entered" id="date_entered"
+                       value="{{ today }}"
+                       class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
+                Start Session
+            </button>
+        </form>
+
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('collectors.new') }}" class="text-purple-400 hover:text-purple-300 text-sm">
+                + Add New Collector
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

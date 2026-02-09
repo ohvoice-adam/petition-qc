@@ -1,0 +1,27 @@
+<div data-success class="text-center py-8">
+    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mb-3
+                {% if match_type == 'person' %}bg-green-500/20 text-green-400
+                {% elif match_type == 'address' %}bg-orange-500/20 text-orange-400
+                {% else %}bg-gray-500/20 text-gray-400{% endif %}">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+    </div>
+    <p class="{% if match_type == 'person' %}text-green-400{% elif match_type == 'address' %}text-orange-400{% else %}text-gray-400{% endif %} font-medium">
+        {{ message }}
+    </p>
+</div>
+
+<script>
+// Clear search input and refocus immediately
+(function() {
+    const input = document.getElementById('address-search');
+    input.value = '';
+    input.focus();
+    // Clear results after brief delay to show confirmation
+    setTimeout(function() {
+        document.getElementById('search-results').innerHTML =
+            '<div class="text-center text-gray-500 dark:text-gray-400 py-12">Enter an address to search for matching voters</div>';
+    }, 800);
+})();
+</script>

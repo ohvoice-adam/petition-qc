@@ -1,0 +1,79 @@
+from app import db
+
+
+class Collector(db.Model):
+    """Petition signature collectors."""
+
+    __tablename__ = "collectors"
+
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(20))
+    email = db.Column(db.String(120))
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    # Relationships
+    books = db.relationship("Book", back_populates="collector")
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    @property
+    def display_name(self):
+        return f"{self.last_name}, {self.first_name}"
+
+    def __repr__(self):
+        return f"<Collector {self.full_name}>"
+
+
+class DataEnterer(db.Model):
+    """Data entry staff."""
+
+    __tablename__ = "data_enterers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    phone = db.Column(db.String(20))
+    email = db.Column(db.String(120))
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    @property
+    def display_name(self):
+        return f"{self.last_name}, {self.first_name}"
+
+    def __repr__(self):
+        return f"<DataEnterer {self.full_name}>"
+
+
+class Organization(db.Model):
+    """Organizations that manage paid collectors."""
+
+    __tablename__ = "organizations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    organization = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __repr__(self):
+        return f"<Organization {self.organization}>"
+
+
+class PaidCollector(db.Model):
+    """Links collectors to organizations (for paid signature collection)."""
+
+    __tablename__ = "paid_collectors"
+
+    id = db.Column(db.Integer, primary_key=True)
+    collector_id = db.Column(db.Integer, db.ForeignKey("collectors.id"), nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    collector = db.relationship("Collector")
+    organization = db.relationship("Organization")
