@@ -26,16 +26,18 @@ def create_app(config_class=Config):
     from app.routes.collectors import bp as collectors_bp
     from app.routes.stats import bp as stats_bp
     from app.routes.auth import bp as auth_bp
+    from app.routes.settings import bp as settings_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(signatures_bp, url_prefix="/signatures")
     app.register_blueprint(collectors_bp, url_prefix="/collectors")
     app.register_blueprint(stats_bp, url_prefix="/stats")
     app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(settings_bp, url_prefix="/settings")
 
     # Create tables and enable pg_trgm
     with app.app_context():
-        from app.models import User, Voter, Signature, Book, Batch, Collector, DataEnterer
+        from app.models import User, Voter, Signature, Book, Batch, Collector, DataEnterer, Settings
         db.create_all()
 
         # Enable pg_trgm extension

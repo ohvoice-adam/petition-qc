@@ -6,40 +6,48 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">Organization Performance</h1>
-        <a href="{{ url_for('stats.index') }}" class="text-purple-400 hover:text-purple-300">
+        <a href="{{ url_for('stats.index') }}" class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300">
             Back to Overview
         </a>
     </div>
 
-    <div class="bg-gray-800 rounded-lg overflow-hidden overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-700">
-            <thead class="bg-gray-900">
+    {% if stats and stats[0] %}
+    {% set target_city = stats[0].target_city %}
+    <div class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+        <span class="text-purple-700 dark:text-purple-300">Target City:</span>
+        <span class="font-bold text-purple-900 dark:text-purple-100">{{ target_city }}</span>
+    </div>
+    {% endif %}
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg overflow-hidden overflow-x-auto shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Organization</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Books</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Matched Columbus</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Matched Other</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Addr Only</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Unmatched</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">% Verified</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">% Columbus</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Organization</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Books</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Matched Target</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Matched Other</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Addr Only</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unmatched</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">% Verified</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">% Target</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-700">
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% for stat in stats %}
-                <tr class="hover:bg-gray-750">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <td class="px-4 py-4 whitespace-nowrap font-medium">{{ stat.organization }}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-right text-gray-400">{{ stat.books }}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-right text-green-400">{{ stat.matched_columbus }}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-right text-green-300">{{ stat.matched_not_columbus }}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-right text-orange-400">{{ stat.matched_incorrect + stat.matched_incorrect_not_columbus }}</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-right text-yellow-400">{{ stat.unmatched }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-right text-gray-500 dark:text-gray-400">{{ stat.books }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-right text-green-600 dark:text-green-400">{{ stat.matched_target }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-right text-green-500 dark:text-green-300">{{ stat.matched_other }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-right text-orange-600 dark:text-orange-400">{{ stat.address_only_target + stat.address_only_other }}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-right text-yellow-600 dark:text-yellow-400">{{ stat.unmatched }}</td>
                     <td class="px-4 py-4 whitespace-nowrap text-right font-bold">{{ stat.percent_verified }}%</td>
-                    <td class="px-4 py-4 whitespace-nowrap text-right">{{ stat.percent_columbus }}%</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-right">{{ stat.percent_target }}%</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                    <td colspan="8" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                         No organization data yet.
                     </td>
                 </tr>

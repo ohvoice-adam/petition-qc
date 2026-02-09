@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Petition QC{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">Settings</h1>
+
+    <form method="POST" class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm space-y-6">
+        <div>
+            <label for="target_city" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Target City for Signature Verification
+            </label>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Signatures from residents of this city will be counted as "verified". Statistics will show the percentage of signatures from this city.
+            </p>
+            <select name="target_city" id="target_city"
+                    class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+                {% for city in cities %}
+                <option value="{{ city.value }}" {% if city.value == current_city %}selected{% endif %}>
+                    {{ city.label }} ({{ "{:,}".format(city.count) }} voters)
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                Currently set to: <span class="font-medium text-gray-900 dark:text-white">{{ current_city.title() if current_city else 'Not set' }}</span>
+            </div>
+            <button type="submit"
+                    class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
+                Save Settings
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

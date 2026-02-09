@@ -36,10 +36,12 @@ class Signature(db.Model):
     batch = db.relationship("Batch", back_populates="signatures")
 
     @property
-    def is_columbus_resident(self):
-        """Check if registered city is Columbus."""
+    def is_target_city_resident(self):
+        """Check if registered city matches the target city."""
+        from app.models import Settings
         if self.registered_city:
-            return self.registered_city.upper().startswith("COLUMBUS")
+            pattern = Settings.get_target_city_pattern().rstrip('%')
+            return self.registered_city.upper().startswith(pattern)
         return False
 
     @property
