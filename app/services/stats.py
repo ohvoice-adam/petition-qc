@@ -150,7 +150,7 @@ class StatsService:
 
         sql = text("""
             SELECT
-                coalesce(o.organization, 'Volunteers') as organization,
+                coalesce(o.name, 'Volunteers') as organization,
                 count(distinct(b.id)) as books,
                 sum(
                     case when s.matched is true
@@ -195,8 +195,7 @@ class StatsService:
             FROM collectors c
             LEFT JOIN books b ON b.collector_id = c.id
             LEFT JOIN signatures s ON s.book_id = b.id
-            LEFT JOIN paid_collectors p ON c.id = p.collector_id
-            LEFT JOIN organizations o ON p.organization_id = o.id
+            LEFT JOIN organizations o ON c.organization_id = o.id
             GROUP BY 1
             ORDER BY 1 ASC
         """)
