@@ -3,13 +3,14 @@ from flask_login import login_required
 from sqlalchemy import text
 
 from app import db
-from app.models import Settings
+from app.models import Settings, admin_required
 
 bp = Blueprint("settings", __name__)
 
 
 @bp.route("/", methods=["GET", "POST"])
 @login_required
+@admin_required
 def index():
     """Application settings page."""
     if request.method == "POST":

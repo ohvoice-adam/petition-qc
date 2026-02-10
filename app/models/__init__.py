@@ -1,4 +1,4 @@
-from app.models.user import User
+from app.models.user import User, UserRole, admin_required
 from app.models.voter import Voter
 from app.models.signature import Signature
 from app.models.book import Book
@@ -8,6 +8,8 @@ from app.models.settings import Settings
 
 __all__ = [
     "User",
+    "UserRole",
+    "admin_required",
     "Voter",
     "Signature",
     "Book",

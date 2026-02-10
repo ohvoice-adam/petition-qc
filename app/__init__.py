@@ -27,6 +27,7 @@ def create_app(config_class=Config):
     from app.routes.stats import bp as stats_bp
     from app.routes.auth import bp as auth_bp
     from app.routes.settings import bp as settings_bp
+    from app.routes.users import bp as users_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(signatures_bp, url_prefix="/signatures")
@@ -34,6 +35,7 @@ def create_app(config_class=Config):
     app.register_blueprint(stats_bp, url_prefix="/stats")
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(settings_bp, url_prefix="/settings")
+    app.register_blueprint(users_bp, url_prefix="/users")
 
     # Create tables and enable pg_trgm
     with app.app_context():
