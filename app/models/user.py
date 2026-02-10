@@ -27,8 +27,12 @@ class User(UserMixin, db.Model):
     first_name = db.Column(db.String(100))
     last_name = db.Column(db.String(100))
     role = db.Column(db.String(20), default=UserRole.ENTERER, nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    # Relationships
+    organization = db.relationship("Organization", back_populates="users")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

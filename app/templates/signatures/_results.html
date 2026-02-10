@@ -23,7 +23,7 @@
                 <td class="px-4 py-3 whitespace-nowrap text-sm">{{ voter.last_name }}</td>
                 <td class="px-4 py-3 text-sm">{{ voter.residential_address1 }}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm">{{ voter.residential_address2 or '' }}</td>
-                <td class="px-4 py-3 whitespace-nowrap text-sm">{{ voter.residential_city }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm">{{ voter.city }}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm">{{ voter.residential_zip }}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm space-x-2">
                     <button hx-post="{{ url_for('signatures.record_match') }}"

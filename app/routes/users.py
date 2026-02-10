@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 
 from app import db
-from app.models import User, UserRole, admin_required
+from app.models import User, UserRole, Organization, admin_required
 
 bp = Blueprint("users", __name__)
 
@@ -21,22 +21,27 @@ def index():
 @admin_required
 def new():
     """Create a new user."""
+    organizations = Organization.query.order_by(Organization.name).all()
+
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
         first_name = request.form.get("first_name")
         last_name = request.form.get("last_name")
         role = request.form.get("role", UserRole.ENTERER)
+        org_id = request.form.get("organization_id")
+        organization_id = int(org_id) if org_id else None
 
         if User.query.filter_by(email=email).first():
             flash("Email already registered", "error")
-            return render_template("users/new.html", roles=UserRole.CHOICES)
+            return render_template("users/new.html", roles=UserRole.CHOICES, organizations=organizations)
 
         user = User(
             email=email,
             first_name=first_name,
             last_name=last_name,
             role=role,
+            organization_id=organization_id,
         )
         user.set_password(password)
 
@@ -46,7 +51,7 @@ def new():
         flash(f"User {user.full_name} created successfully", "success")
         return redirect(url_for("users.index"))
 
-    return render_template("users/new.html", roles=UserRole.CHOICES)
+    return render_template("users/new.html", roles=UserRole.CHOICES, organizations=organizations)
 
 
 @bp.route("/<int:id>/edit", methods=["GET", "POST"])
@@ -55,6 +60,7 @@ def new():
 def edit(id):
     """Edit a user."""
     user = db.session.get(User, id)
+    organizations = Organization.query.order_by(Organization.name).all()
 
     if not user:
         flash("User not found", "error")
@@ -67,6 +73,9 @@ def edit(id):
         user.role = request.form.get("role", UserRole.ENTERER)
         user.is_active = request.form.get("is_active") == "on"
 
+        org_id = request.form.get("organization_id")
+        user.organization_id = int(org_id) if org_id else None
+
         # Only update password if provided
         new_password = request.form.get("password")
         if new_password:
@@ -77,7 +86,7 @@ def edit(id):
         flash(f"User {user.full_name} updated successfully", "success")
         return redirect(url_for("users.index"))
 
-    return render_template("users/edit.html", user=user, roles=UserRole.CHOICES)
+    return render_template("users/edit.html", user=user, roles=UserRole.CHOICES, organizations=organizations)
 
 
 @bp.route("/<int:id>/toggle-active", methods=["POST"])

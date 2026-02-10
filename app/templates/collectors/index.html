@@ -17,6 +17,7 @@
             <thead class="bg-gray-900">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Organization</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Phone</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
@@ -26,6 +27,7 @@
                 {% for collector in collectors %}
                 <tr class="hover:bg-gray-750">
                     <td class="px-6 py-4 whitespace-nowrap">{{ collector.full_name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-400">{{ collector.organization.name if collector.organization else '—' }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-gray-400">{{ collector.phone or '-' }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-gray-400">{{ collector.email or '-' }}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -35,7 +37,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                    <td colspan="5" class="px-6 py-8 text-center text-gray-500">
                         No collectors yet.
                         <a href="{{ url_for('collectors.new') }}" class="text-purple-400 hover:text-purple-300">Add one</a>
                     </td>

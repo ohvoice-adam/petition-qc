@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Organizations - Petition QC{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Manage Organizations</h1>
+        <a href="{{ url_for('organizations.new') }}"
+           class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
+            Add Organization
+        </a>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Collectors</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Users</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for org in organizations %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-4 whitespace-nowrap font-medium">{{ org.name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
+                        {{ org.collectors|length }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">
+                        {{ org.users|length }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap space-x-3">
+                        <a href="{{ url_for('organizations.edit', id=org.id) }}"
+                           class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300">
+                            Edit
+                        </a>
+                        {% if not org.collectors and not org.users %}
+                        <form method="POST" action="{{ url_for('organizations.delete', id=org.id) }}" class="inline">
+                            <button type="submit"
+                                    onclick="return confirm('Are you sure you want to delete this organization?')"
+                                    class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300">
+                                Delete
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                        No organizations yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

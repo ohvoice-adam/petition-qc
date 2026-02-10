@@ -11,10 +11,12 @@ class Collector(db.Model):
     last_name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20))
     email = db.Column(db.String(120))
+    organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     # Relationships
     books = db.relationship("Book", back_populates="collector")
+    organization = db.relationship("Organization", back_populates="collectors")
 
     @property
     def full_name(self):
@@ -53,16 +55,20 @@ class DataEnterer(db.Model):
 
 
 class Organization(db.Model):
-    """Organizations that manage paid collectors."""
+    """Organizations that manage collectors."""
 
     __tablename__ = "organizations"
 
     id = db.Column(db.Integer, primary_key=True)
-    organization = db.Column(db.String(200), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+    # Relationships
+    collectors = db.relationship("Collector", back_populates="organization")
+    users = db.relationship("User", back_populates="organization")
+
     def __repr__(self):
-        return f"<Organization {self.organization}>"
+        return f"<Organization {self.name}>"
 
 
 class PaidCollector(db.Model):
