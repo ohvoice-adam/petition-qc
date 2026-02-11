@@ -17,11 +17,23 @@ def index():
         target_city = request.form.get("target_city")
         if target_city:
             Settings.set("target_city", target_city.upper())
-            flash(f"Target city set to {target_city.title()}", "success")
+
+        signature_goal = request.form.get("signature_goal", "").strip()
+        if signature_goal:
+            try:
+                goal = int(signature_goal)
+                if goal >= 0:
+                    Settings.set_signature_goal(goal)
+            except ValueError:
+                flash("Signature goal must be a number", "error")
+                return redirect(url_for("settings.index"))
+
+        flash("Settings saved", "success")
         return redirect(url_for("settings.index"))
 
-    # Get current setting
+    # Get current settings
     current_city = Settings.get_target_city()
+    signature_goal = Settings.get_signature_goal()
 
     # Get distinct cities from voter file
     cities = get_distinct_cities()
@@ -30,6 +42,7 @@ def index():
         "settings/index.html",
         current_city=current_city,
         cities=cities,
+        signature_goal=signature_goal,
     )
 
 

@@ -1,3 +1,5 @@
+from datetime import date
+
 from flask import Blueprint, render_template, request, session, flash, redirect, url_for
 from flask_login import login_required
 
@@ -15,7 +17,6 @@ def entry():
     book_id = session.get("book_id")
     batch_id = session.get("batch_id")
     book_number = session.get("book_number")
-    date_entered = session.get("date_entered")
 
     if not book_id or not batch_id:
         flash("Please start a session first", "warning")
@@ -26,7 +27,7 @@ def entry():
         book_id=book_id,
         batch_id=batch_id,
         book_number=book_number,
-        date_entered=date_entered,
+        today=date.today().isoformat(),
     )
 
 
@@ -64,7 +65,7 @@ def record_match():
         book_id=book_id,
         batch_id=batch_id,
         sos_voterid=voter.sos_voterid,
-        county_id=voter.county_id,
+        county_number=voter.county_number,
         residential_address1=voter.residential_address1,
         residential_address2=voter.residential_address2,
         residential_city=voter.residential_city,
@@ -105,7 +106,7 @@ def record_address_only():
         book_id=book_id,
         batch_id=batch_id,
         sos_voterid=voter.sos_voterid,
-        county_id=voter.county_id,
+        county_number=voter.county_number,
         residential_address1=voter.residential_address1,
         residential_address2=voter.residential_address2,
         residential_city=voter.residential_city,

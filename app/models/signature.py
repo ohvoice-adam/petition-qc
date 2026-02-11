@@ -10,7 +10,7 @@ class Signature(db.Model):
 
     # Voter identification
     sos_voterid = db.Column(db.String(20), index=True)
-    county_id = db.Column(db.String(20))
+    county_number = db.Column(db.String(10))
 
     # Book and batch tracking
     book_id = db.Column(db.Integer, db.ForeignKey("books.id"))

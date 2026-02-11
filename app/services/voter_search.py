@@ -64,7 +64,7 @@ class VoterSearchService:
             voter = Voter(
                 id=row["id"],
                 sos_voterid=row["sos_voterid"],
-                county_id=row["county_id"],
+                county_number=row["county_number"],
                 first_name=row["first_name"],
                 middle_name=row["middle_name"],
                 last_name=row["last_name"],

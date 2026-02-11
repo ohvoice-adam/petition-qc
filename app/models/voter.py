@@ -8,7 +8,7 @@ class Voter(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     sos_voterid = db.Column(db.String(20), index=True)
-    county_id = db.Column(db.String(20))
+    county_number = db.Column(db.String(10), index=True)
 
     first_name = db.Column(db.String(100))
     middle_name = db.Column(db.String(100))

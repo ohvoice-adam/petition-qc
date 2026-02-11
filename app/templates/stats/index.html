@@ -23,6 +23,39 @@
         <a href="{{ url_for('settings.index') }}" class="ml-2 text-purple-600 dark:text-purple-400 hover:underline text-sm">(change)</a>
     </div>
 
+    <!-- Progress to Goal -->
+    {% if signature_goal > 0 %}
+    {% set verified_count = progress.matched_target %}
+    {% set goal_percent = (verified_count * 100 / signature_goal)|round(1) if signature_goal else 0 %}
+    {% set goal_percent_capped = [goal_percent, 100]|min %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xl font-semibold">Progress to Goal</h2>
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+                {{ "{:,}".format(verified_count) }} / {{ "{:,}".format(signature_goal) }} verified signatures
+            </span>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-8 overflow-hidden relative">
+            <div class="h-full transition-all duration-500 {% if goal_percent >= 100 %}bg-green-500{% else %}bg-purple-600{% endif %}"
+                 style="width: {{ goal_percent_capped }}%"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-sm font-bold {% if goal_percent >= 50 %}text-white{% else %}text-gray-700 dark:text-gray-300{% endif %}">
+                    {{ goal_percent }}%
+                </span>
+            </div>
+        </div>
+        {% if goal_percent >= 100 %}
+        <div class="mt-2 text-green-600 dark:text-green-400 font-medium text-center">
+            Goal reached!
+        </div>
+        {% else %}
+        <div class="mt-2 text-gray-500 dark:text-gray-400 text-sm text-center">
+            {{ "{:,}".format(signature_goal - verified_count) }} more verified signatures needed
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Summary cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">

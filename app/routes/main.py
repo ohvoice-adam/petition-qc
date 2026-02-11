@@ -26,6 +26,7 @@ def index():
         book_id=book_id,
         batch_id=batch_id,
         book_number=book_number,
+        today=date.today().isoformat(),
     )
 
 
@@ -35,7 +36,8 @@ def start_session():
     """Start a new data entry session."""
     book_number = request.form.get("book_number")
     collector_id = request.form.get("collector_id")
-    date_entered = request.form.get("date_entered") or date.today().isoformat()
+    date_out = request.form.get("date_out") or date.today().isoformat()
+    date_back = request.form.get("date_back") or date.today().isoformat()
 
     if not book_number or not collector_id:
         flash("Please enter book number and select a collector", "error")
@@ -44,8 +46,18 @@ def start_session():
     # Find or create the book
     book = Book.query.filter_by(book_number=book_number).first()
     if not book:
-        book = Book(book_number=book_number, collector_id=collector_id)
+        book = Book(
+            book_number=book_number,
+            collector_id=collector_id,
+            date_out=date_out,
+            date_back=date_back,
+        )
         db.session.add(book)
+        db.session.commit()
+    else:
+        # Update dates on existing book
+        book.date_out = date_out
+        book.date_back = date_back
         db.session.commit()
 
     # Create a new batch for this session
@@ -57,7 +69,7 @@ def start_session():
         enterer_first=current_user.first_name,
         enterer_last=current_user.last_name,
         enterer_email=current_user.email,
-        date_entered=date_entered,
+        date_entered=date.today(),
     )
     db.session.add(batch)
     db.session.commit()
@@ -66,10 +78,27 @@ def start_session():
     session["book_id"] = book.id
     session["batch_id"] = batch.id
     session["book_number"] = book_number
-    session["date_entered"] = date_entered
 
     flash(f"Started session for Book {book_number}", "success")
     return redirect(url_for("signatures.entry"))
+
+
+@bp.route("/check-book", methods=["POST"])
+@login_required
+def check_book():
+    """Check if a book number already exists."""
+    book_number = request.form.get("book_number", "").strip()
+    if not book_number:
+        return {"exists": False}
+
+    book = Book.query.filter_by(book_number=book_number).first()
+    if book:
+        return {
+            "exists": True,
+            "book_number": book.book_number,
+            "collector": book.collector.display_name if book.collector else "Unknown",
+        }
+    return {"exists": False}
 
 
 @bp.route("/end-session", methods=["POST"])
@@ -79,7 +108,6 @@ def end_session():
     session.pop("book_id", None)
     session.pop("batch_id", None)
     session.pop("book_number", None)
-    session.pop("date_entered", None)
 
     flash("Session ended", "info")
     return redirect(url_for("main.index"))

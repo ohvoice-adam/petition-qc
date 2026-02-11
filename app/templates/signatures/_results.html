@@ -4,15 +4,27 @@
 </div>
 {% elif voters %}
 <div class="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
-    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+    <table id="results-table" class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead class="bg-gray-50 dark:bg-gray-900">
             <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">First Name</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Last Name</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Street Address</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Apt</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">City</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ZIP</th>
+                <th class="sortable px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none" data-col="0">
+                    First Name <span class="sort-icon"></span>
+                </th>
+                <th class="sortable px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none" data-col="1">
+                    Last Name <span class="sort-icon"></span>
+                </th>
+                <th class="sortable px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none" data-col="2">
+                    Street Address <span class="sort-icon"></span>
+                </th>
+                <th class="sortable px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none" data-col="3">
+                    Apt <span class="sort-icon"></span>
+                </th>
+                <th class="sortable px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none" data-col="4">
+                    City <span class="sort-icon"></span>
+                </th>
+                <th class="sortable px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none" data-col="5">
+                    ZIP <span class="sort-icon"></span>
+                </th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
             </tr>
         </thead>
@@ -46,6 +58,47 @@
         </tbody>
     </table>
 </div>
+<script>
+(function() {
+    const table = document.getElementById('results-table');
+    if (!table) return;
+
+    let currentCol = null;
+    let ascending = true;
+
+    table.querySelectorAll('th.sortable').forEach(th => {
+        th.addEventListener('click', function() {
+            const col = parseInt(this.dataset.col);
+
+            if (currentCol === col) {
+                ascending = !ascending;
+            } else {
+                currentCol = col;
+                ascending = true;
+            }
+
+            // Update sort icons
+            table.querySelectorAll('.sort-icon').forEach(icon => icon.textContent = '');
+            this.querySelector('.sort-icon').textContent = ascending ? ' \u25B2' : ' \u25BC';
+
+            // Sort rows
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            rows.sort((a, b) => {
+                const aVal = a.cells[col].textContent.trim().toLowerCase();
+                const bVal = b.cells[col].textContent.trim().toLowerCase();
+
+                if (aVal < bVal) return ascending ? -1 : 1;
+                if (aVal > bVal) return ascending ? 1 : -1;
+                return 0;
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+        });
+    });
+})();
+</script>
 <div class="mt-2 text-gray-500 dark:text-gray-400 text-sm">
     {{ voters|length }} results found
 </div>

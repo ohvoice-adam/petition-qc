@@ -32,12 +32,16 @@
     <div class="bg-gray-800 rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4">Start New Session</h2>
 
-        <form method="POST" action="{{ url_for('main.start_session') }}" class="space-y-4">
+        <form method="POST" action="{{ url_for('main.start_session') }}" id="session-form" class="space-y-4">
+            <input type="hidden" name="override" id="override" value="">
             <div>
                 <label for="book_number" class="block text-sm font-medium text-gray-300">Book Number</label>
                 <input type="text" name="book_number" id="book_number" required
                        class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
                        placeholder="Enter book number">
+                <div id="book-warning" class="hidden mt-2 p-3 bg-yellow-900/50 border border-yellow-600 rounded-md text-yellow-200 text-sm">
+                    <strong>Warning:</strong> Book <span id="existing-book-number"></span> already exists (Collector: <span id="existing-collector"></span>).
+                </div>
             </div>
 
             <div>
@@ -51,18 +55,101 @@
                 </select>
             </div>
 
-            <div>
-                <label for="date_entered" class="block text-sm font-medium text-gray-300">Date</label>
-                <input type="date" name="date_entered" id="date_entered"
-                       value="{{ today }}"
-                       class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="date_out" class="block text-sm font-medium text-gray-300">Date Out</label>
+                    <input type="date" name="date_out" id="date_out"
+                           value="{{ today }}"
+                           class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label for="date_back" class="block text-sm font-medium text-gray-300">Date In</label>
+                    <input type="date" name="date_back" id="date_back"
+                           value="{{ today }}"
+                           class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+                </div>
             </div>
 
-            <button type="submit"
+            <button type="submit" id="submit-btn"
                     class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
                 Start Session
             </button>
         </form>
+
+        <script>
+        (function() {
+            const form = document.getElementById('session-form');
+            const bookInput = document.getElementById('book_number');
+            const overrideInput = document.getElementById('override');
+            const warningDiv = document.getElementById('book-warning');
+            const existingBookSpan = document.getElementById('existing-book-number');
+            const existingCollectorSpan = document.getElementById('existing-collector');
+            const submitBtn = document.getElementById('submit-btn');
+
+            let checkedBook = null;
+            let bookExists = false;
+
+            form.addEventListener('submit', async function(e) {
+                const bookNumber = bookInput.value.trim();
+
+                // If already confirmed override, proceed
+                if (overrideInput.value === 'yes') {
+                    return true;
+                }
+
+                // If we haven't checked this book yet, check it
+                if (checkedBook !== bookNumber) {
+                    e.preventDefault();
+
+                    const formData = new FormData();
+                    formData.append('book_number', bookNumber);
+
+                    try {
+                        const response = await fetch('{{ url_for("main.check_book") }}', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+
+                        checkedBook = bookNumber;
+                        bookExists = data.exists;
+
+                        if (data.exists) {
+                            existingBookSpan.textContent = data.book_number;
+                            existingCollectorSpan.textContent = data.collector;
+                            warningDiv.classList.remove('hidden');
+                            submitBtn.textContent = 'Continue Anyway';
+                            submitBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+                            submitBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+                        } else {
+                            warningDiv.classList.add('hidden');
+                            form.submit();
+                        }
+                    } catch (error) {
+                        console.error('Error checking book:', error);
+                        form.submit();
+                    }
+                } else if (bookExists) {
+                    // Book exists and user clicked again - they're confirming
+                    overrideInput.value = 'yes';
+                    return true;
+                }
+            });
+
+            // Reset warning when book number changes
+            bookInput.addEventListener('input', function() {
+                if (bookInput.value.trim() !== checkedBook) {
+                    warningDiv.classList.add('hidden');
+                    submitBtn.textContent = 'Start Session';
+                    submitBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
+                    submitBtn.classList.add('bg-purple-600', 'hover:bg-purple-700');
+                    overrideInput.value = '';
+                    checkedBook = null;
+                    bookExists = false;
+                }
+            });
+        })();
+        </script>
 
         <div class="mt-4 text-center">
             <a href="{{ url_for('collectors.new') }}" class="text-purple-400 hover:text-purple-300 text-sm">

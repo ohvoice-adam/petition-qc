@@ -14,3 +14,7 @@ class Config:
     # Search settings
     SEARCH_RESULTS_LIMIT = 100  # Fewer results = faster response
     SEARCH_SIMILARITY_THRESHOLD = 0.2  # Lower = more results but faster
+
+    # File upload settings
+    UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", "/tmp/petition-qc-uploads")
+    MAX_CONTENT_LENGTH = 1024 * 1024 * 1024  # 1GB max upload size

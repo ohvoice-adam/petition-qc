@@ -49,5 +49,19 @@ class Settings(db.Model):
             return f"{base}%"
         return "COLUMBUS%"
 
+    @classmethod
+    def get_signature_goal(cls) -> int:
+        """Get the signature goal count."""
+        value = cls.get("signature_goal")
+        try:
+            return int(value) if value else 0
+        except (ValueError, TypeError):
+            return 0
+
+    @classmethod
+    def set_signature_goal(cls, goal: int) -> None:
+        """Set the signature goal count."""
+        cls.set("signature_goal", str(goal))
+
     def __repr__(self):
         return f"<Settings {self.key}={self.value}>"

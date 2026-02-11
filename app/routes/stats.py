@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template
 from flask_login import login_required
 
+from app.models import Settings
 from app.services import StatsService
 
 bp = Blueprint("stats", __name__)
@@ -11,7 +12,8 @@ bp = Blueprint("stats", __name__)
 def index():
     """Main statistics dashboard."""
     progress = StatsService.get_progress_stats()
-    return render_template("stats/index.html", progress=progress)
+    signature_goal = Settings.get_signature_goal()
+    return render_template("stats/index.html", progress=progress, signature_goal=signature_goal)
 
 
 @bp.route("/enterers")
