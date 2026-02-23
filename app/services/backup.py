@@ -1,6 +1,6 @@
 """Database backup service: pg_dump specific tables and upload via SFTP."""
 
-import contextlib
+import io
 import logging
 import os
 import posixpath
@@ -138,44 +138,57 @@ def _create_pg_dump(db_url: str) -> str:
     return dump_path
 
 
-@contextlib.contextmanager
-def _key_tempfile(key_content: str):
-    """Write key content to a chmod-600 temp file; delete it on exit."""
-    fd, path = tempfile.mkstemp(prefix="petition-qc-key-")
-    try:
-        os.write(fd, key_content.encode())
-        os.close(fd)
-        os.chmod(path, 0o600)
-        yield path
-    finally:
+def _load_pkey(key_content: str):
+    """Load a paramiko PKey from a PEM/OpenSSH string, trying all key types.
+
+    Normalises line endings first so browser-uploaded files work regardless
+    of whether they were saved with LF or CRLF.
+    """
+    import paramiko
+
+    key_content = key_content.replace("\r\n", "\n").replace("\r", "\n")
+    for key_class in (
+        paramiko.RSAKey,
+        paramiko.Ed25519Key,
+        paramiko.ECDSAKey,
+        paramiko.DSSKey,
+    ):
         try:
-            os.unlink(path)
-        except OSError:
-            pass
+            return key_class.from_private_key(io.StringIO(key_content))
+        except (paramiko.SSHException, ValueError):
+            continue
+    raise ValueError(
+        "Could not load the private key — unsupported format or corrupted file. "
+        "Supported types: RSA, Ed25519, ECDSA, DSA."
+    )
 
 
 def test_sftp_connection(scp_config: dict) -> tuple[bool, str]:
     """Attempt an SSH connection and return (success, message)."""
     import paramiko
 
-    with _key_tempfile(scp_config["key_content"]) as key_tmp:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        try:
-            client.connect(
-                scp_config["host"],
-                port=scp_config["port"],
-                username=scp_config["user"],
-                key_filename=key_tmp,
-                look_for_keys=False,
-                allow_agent=False,
-                timeout=10,
-            )
-            return True, f"Connected to {scp_config['host']} successfully."
-        except Exception as exc:
-            return False, str(exc)
-        finally:
-            client.close()
+    try:
+        pkey = _load_pkey(scp_config["key_content"])
+    except ValueError as exc:
+        return False, str(exc)
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        client.connect(
+            scp_config["host"],
+            port=scp_config["port"],
+            username=scp_config["user"],
+            pkey=pkey,
+            look_for_keys=False,
+            allow_agent=False,
+            timeout=10,
+        )
+        return True, f"Connected to {scp_config['host']} successfully."
+    except Exception as exc:
+        return False, str(exc)
+    finally:
+        client.close()
 
 
 def run_backup_sync(app) -> None:
@@ -199,28 +212,28 @@ def _sftp_upload(local_path: str, scp_config: dict) -> None:
     """Upload a file to the remote server via SFTP (SSH)."""
     import paramiko
 
-    with _key_tempfile(scp_config["key_content"]) as key_tmp:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    pkey = _load_pkey(scp_config["key_content"])
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        try:
-            client.connect(
-                scp_config["host"],
-                port=scp_config["port"],
-                username=scp_config["user"],
-                key_filename=key_tmp,
-                look_for_keys=False,
-                allow_agent=False,
-                timeout=30,
-            )
+    try:
+        client.connect(
+            scp_config["host"],
+            port=scp_config["port"],
+            username=scp_config["user"],
+            pkey=pkey,
+            look_for_keys=False,
+            allow_agent=False,
+            timeout=30,
+        )
 
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            remote_filename = f"petition-qc-backup-{timestamp}.dump"
-            remote_dir = scp_config["remote_path"].rstrip("/")
-            remote_path = posixpath.join(remote_dir, remote_filename)
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        remote_filename = f"petition-qc-backup-{timestamp}.dump"
+        remote_dir = scp_config["remote_path"].rstrip("/")
+        remote_path = posixpath.join(remote_dir, remote_filename)
 
-            sftp = client.open_sftp()
-            sftp.put(local_path, remote_path)
-            sftp.close()
-        finally:
-            client.close()
+        sftp = client.open_sftp()
+        sftp.put(local_path, remote_path)
+        sftp.close()
+    finally:
+        client.close()
