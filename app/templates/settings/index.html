@@ -90,23 +90,33 @@
             {% endif %}
         </div>
 
-        <!-- Run backup button -->
+        <!-- Run backup + test connection buttons -->
         {% if backup_configured %}
-        <form method="POST" action="{{ url_for('settings.run_backup') }}">
-            <button type="submit"
-                    {% if backup_config.last_status == 'running' %}disabled{% endif %}
-                    class="bg-navy-600 hover:bg-navy-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-md text-sm">
-                {% if backup_config.last_status == 'running' %}
-                    Backup Running&hellip;
-                {% else %}
-                    Run Backup Now
-                {% endif %}
+        <div class="flex items-center gap-3 flex-wrap">
+            <form method="POST" action="{{ url_for('settings.run_backup') }}">
+                <button type="submit"
+                        {% if backup_config.last_status == 'running' %}disabled{% endif %}
+                        class="bg-navy-600 hover:bg-navy-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-md text-sm">
+                    {% if backup_config.last_status == 'running' %}
+                        Backup Running&hellip;
+                    {% else %}
+                        Run Backup Now
+                    {% endif %}
+                </button>
+            </form>
+
+            <button id="test-conn-btn" type="button"
+                    onclick="testBackupConnection()"
+                    class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium py-2 px-4 rounded-md text-sm">
+                Test Connection
             </button>
-        </form>
+            <span id="test-conn-result" class="text-sm hidden"></span>
+        </div>
         {% endif %}
 
         <!-- SCP configuration form -->
         <form method="POST" action="{{ url_for('settings.save_backup_config') }}"
+              enctype="multipart/form-data"
               class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">SCP / SFTP Configuration</h3>
 
@@ -142,16 +152,28 @@
             </div>
 
             <div>
-                <label for="scp_key_path" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    SSH Private Key Path
+                <label for="scp_key_file" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    SSH Private Key
                 </label>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    Absolute path to the private key file on this server (e.g. <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">/home/petition/.ssh/backup_key</code>).
+                {% if backup_config.has_key %}
+                <p class="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 mb-2">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414L8.414 15l-4.121-4.121a1 1 0 011.414-1.414L8.414 12.172l7.879-7.879a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                    Key configured. Upload a new file to replace it.
                 </p>
-                <input type="text" name="scp_key_path" id="scp_key_path"
-                       value="{{ backup_config.scp_key_path }}"
-                       placeholder="/home/petition/.ssh/backup_key"
-                       class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 text-sm font-mono focus:border-navy-500 focus:ring-navy-500">
+                {% else %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Upload a PEM-format private key file (e.g. <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">id_ed25519</code> or <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">id_rsa</code>).
+                    The key is stored securely in the database.
+                </p>
+                {% endif %}
+                <input type="file" name="scp_key_file" id="scp_key_file"
+                       accept=".pem,.key,text/plain"
+                       class="block w-full text-sm text-gray-700 dark:text-gray-300
+                              file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0
+                              file:text-sm file:font-medium
+                              file:bg-gray-100 dark:file:bg-gray-700
+                              file:text-gray-700 dark:file:text-gray-200
+                              hover:file:bg-gray-200 dark:hover:file:bg-gray-600">
             </div>
 
             <div>
@@ -167,6 +189,22 @@
                        class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 text-sm font-mono focus:border-navy-500 focus:ring-navy-500">
             </div>
 
+            <div>
+                <label for="backup_schedule" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Automatic Schedule
+                </label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Scheduled backups run at midnight UTC (daily/weekly) or on the hour (hourly).
+                </p>
+                <select name="backup_schedule" id="backup_schedule"
+                        class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-navy-500 focus:ring-navy-500">
+                    <option value=""      {% if not backup_config.schedule %}selected{% endif %}>Disabled</option>
+                    <option value="hourly" {% if backup_config.schedule == 'hourly' %}selected{% endif %}>Hourly (at :00)</option>
+                    <option value="daily"  {% if backup_config.schedule == 'daily'  %}selected{% endif %}>Daily (02:00 UTC)</option>
+                    <option value="weekly" {% if backup_config.schedule == 'weekly' %}selected{% endif %}>Weekly (Sunday 02:00 UTC)</option>
+                </select>
+            </div>
+
             <div class="flex justify-end pt-2">
                 <button type="submit"
                         class="bg-accent-500 hover:bg-accent-600 text-white font-medium py-2 px-4 rounded-md text-sm">
@@ -176,4 +214,35 @@
         </form>
     </div>
 </div>
+
+<script>
+async function testBackupConnection() {
+    const btn = document.getElementById('test-conn-btn');
+    const result = document.getElementById('test-conn-result');
+    btn.disabled = true;
+    btn.textContent = 'Testing\u2026';
+    result.className = 'text-sm text-gray-500 dark:text-gray-400';
+    result.textContent = '';
+    result.classList.remove('hidden');
+
+    try {
+        const resp = await fetch('{{ url_for("settings.test_backup_connection") }}', {
+            method: 'POST',
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            result.className = 'text-sm font-medium text-green-700 dark:text-green-400';
+        } else {
+            result.className = 'text-sm font-medium text-red-600 dark:text-red-400';
+        }
+        result.textContent = data.message;
+    } catch (e) {
+        result.className = 'text-sm font-medium text-red-600 dark:text-red-400';
+        result.textContent = 'Request failed: ' + e.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Test Connection';
+    }
+}
+</script>
 {% endblock %}

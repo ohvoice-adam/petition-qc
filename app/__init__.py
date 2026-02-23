@@ -63,4 +63,8 @@ def create_app(config_class=Config):
         from app.services.voter_import import VoterImportService
         VoterImportService.recover_stale_imports()
 
+    # Start the backup scheduler (reads schedule setting from DB)
+    from app.services.scheduler import init_app as init_scheduler
+    init_scheduler(app)
+
     return app

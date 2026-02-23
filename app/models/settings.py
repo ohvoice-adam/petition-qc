@@ -74,8 +74,9 @@ class Settings(db.Model):
             "scp_host": cls.get("backup_scp_host", ""),
             "scp_port": cls.get("backup_scp_port", "22"),
             "scp_user": cls.get("backup_scp_user", ""),
-            "scp_key_path": cls.get("backup_scp_key_path", ""),
+            "has_key": bool(cls.get("backup_scp_key_content")),
             "scp_remote_path": cls.get("backup_scp_remote_path", ""),
+            "schedule": cls.get("backup_schedule", ""),
             "last_run": cls.get("backup_last_run", ""),
             "last_status": cls.get("backup_last_status", ""),
         }
@@ -86,15 +87,20 @@ class Settings(db.Model):
         host: str,
         port: str,
         user: str,
-        key_path: str,
         remote_path: str,
+        key_content: str | None = None,
     ) -> None:
-        """Persist SCP backup configuration."""
+        """Persist SCP backup configuration.
+
+        If *key_content* is provided it replaces any previously stored key.
+        Omit (or pass None) to keep the existing stored key unchanged.
+        """
         cls.set("backup_scp_host", host.strip())
         cls.set("backup_scp_port", port.strip() or "22")
         cls.set("backup_scp_user", user.strip())
-        cls.set("backup_scp_key_path", key_path.strip())
         cls.set("backup_scp_remote_path", remote_path.strip())
+        if key_content is not None:
+            cls.set("backup_scp_key_content", key_content)
 
     def __repr__(self):
         return f"<Settings {self.key}={self.value}>"

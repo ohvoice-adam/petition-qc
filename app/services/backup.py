@@ -1,5 +1,6 @@
 """Database backup service: pg_dump specific tables and upload via SFTP."""
 
+import contextlib
 import logging
 import os
 import posixpath
@@ -35,7 +36,7 @@ def is_configured() -> bool:
         for k in (
             "backup_scp_host",
             "backup_scp_user",
-            "backup_scp_key_path",
+            "backup_scp_key_content",
             "backup_scp_remote_path",
         )
     )
@@ -77,7 +78,7 @@ def _backup_thread(app) -> None:
             "host": Settings.get("backup_scp_host"),
             "port": int(Settings.get("backup_scp_port", "22") or "22"),
             "user": Settings.get("backup_scp_user"),
-            "key_path": Settings.get("backup_scp_key_path"),
+            "key_content": Settings.get("backup_scp_key_content"),
             "remote_path": Settings.get("backup_scp_remote_path"),
         }
 
@@ -137,31 +138,89 @@ def _create_pg_dump(db_url: str) -> str:
     return dump_path
 
 
+@contextlib.contextmanager
+def _key_tempfile(key_content: str):
+    """Write key content to a chmod-600 temp file; delete it on exit."""
+    fd, path = tempfile.mkstemp(prefix="petition-qc-key-")
+    try:
+        os.write(fd, key_content.encode())
+        os.close(fd)
+        os.chmod(path, 0o600)
+        yield path
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+
+
+def test_sftp_connection(scp_config: dict) -> tuple[bool, str]:
+    """Attempt an SSH connection and return (success, message)."""
+    import paramiko
+
+    with _key_tempfile(scp_config["key_content"]) as key_tmp:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            client.connect(
+                scp_config["host"],
+                port=scp_config["port"],
+                username=scp_config["user"],
+                key_filename=key_tmp,
+                look_for_keys=False,
+                allow_agent=False,
+                timeout=10,
+            )
+            return True, f"Connected to {scp_config['host']} successfully."
+        except Exception as exc:
+            return False, str(exc)
+        finally:
+            client.close()
+
+
+def run_backup_sync(app) -> None:
+    """Run a full backup synchronously (for use by the scheduler)."""
+    with app.app_context():
+        from app.models import Settings
+
+        if not is_configured():
+            logger.warning("Scheduled backup skipped: not configured.")
+            return
+        if Settings.get("backup_last_status") == "running":
+            logger.warning("Scheduled backup skipped: already running.")
+            return
+        Settings.set("backup_last_status", "running")
+        Settings.set("backup_last_run", datetime.now().isoformat())
+
+    _backup_thread(app)
+
+
 def _sftp_upload(local_path: str, scp_config: dict) -> None:
     """Upload a file to the remote server via SFTP (SSH)."""
     import paramiko
 
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    with _key_tempfile(scp_config["key_content"]) as key_tmp:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    try:
-        client.connect(
-            scp_config["host"],
-            port=scp_config["port"],
-            username=scp_config["user"],
-            key_filename=scp_config["key_path"],
-            look_for_keys=False,
-            allow_agent=False,
-            timeout=30,
-        )
+        try:
+            client.connect(
+                scp_config["host"],
+                port=scp_config["port"],
+                username=scp_config["user"],
+                key_filename=key_tmp,
+                look_for_keys=False,
+                allow_agent=False,
+                timeout=30,
+            )
 
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        remote_filename = f"petition-qc-backup-{timestamp}.dump"
-        remote_dir = scp_config["remote_path"].rstrip("/")
-        remote_path = posixpath.join(remote_dir, remote_filename)
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            remote_filename = f"petition-qc-backup-{timestamp}.dump"
+            remote_dir = scp_config["remote_path"].rstrip("/")
+            remote_path = posixpath.join(remote_dir, remote_filename)
 
-        sftp = client.open_sftp()
-        sftp.put(local_path, remote_path)
-        sftp.close()
-    finally:
-        client.close()
+            sftp = client.open_sftp()
+            sftp.put(local_path, remote_path)
+            sftp.close()
+        finally:
+            client.close()

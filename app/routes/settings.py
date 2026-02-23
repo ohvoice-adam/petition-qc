@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
 from flask_login import login_required
 from sqlalchemy import text
 
 from app import db
 from app.models import Settings, admin_required
 from app.services import backup as backup_service
+from app.services import scheduler as scheduler_service
 
 bp = Blueprint("settings", __name__)
 
@@ -53,15 +54,53 @@ def index():
 @admin_required
 def save_backup_config():
     """Save SCP backup configuration."""
+    key_content = None
+    key_file = request.files.get("scp_key_file")
+    if key_file and key_file.filename:
+        try:
+            key_content = key_file.read().decode("utf-8")
+        except (UnicodeDecodeError, ValueError):
+            flash("Invalid key file — must be a text-format PEM private key.", "error")
+            return redirect(url_for("settings.index"))
+        if not key_content.strip():
+            key_content = None
+
     Settings.save_backup_config(
         host=request.form.get("scp_host", ""),
         port=request.form.get("scp_port", "22"),
         user=request.form.get("scp_user", ""),
-        key_path=request.form.get("scp_key_path", ""),
         remote_path=request.form.get("scp_remote_path", ""),
+        key_content=key_content,
     )
+
+    schedule = request.form.get("backup_schedule", "")
+    if schedule not in ("", "hourly", "daily", "weekly"):
+        schedule = ""
+    Settings.set("backup_schedule", schedule)
+    scheduler_service.apply_schedule(current_app._get_current_object())
+
     flash("Backup configuration saved", "success")
     return redirect(url_for("settings.index"))
+
+
+@bp.route("/test-backup-connection", methods=["POST"])
+@login_required
+@admin_required
+def test_backup_connection():
+    """Test the SFTP connection and return JSON {ok, message}."""
+    if not backup_service.is_configured():
+        return jsonify(ok=False, message="Backup is not fully configured.")
+
+    backup_config = Settings.get_backup_config()
+    scp_config = {
+        "host": Settings.get("backup_scp_host"),
+        "port": int(Settings.get("backup_scp_port", "22") or "22"),
+        "user": Settings.get("backup_scp_user"),
+        "key_content": Settings.get("backup_scp_key_content"),
+        "remote_path": backup_config["scp_remote_path"],
+    }
+    ok, message = backup_service.test_sftp_connection(scp_config)
+    return jsonify(ok=ok, message=message)
 
 
 @bp.route("/run-backup", methods=["POST"])
