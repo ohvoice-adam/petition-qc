@@ -88,19 +88,21 @@ def save_backup_config():
 @admin_required
 def test_backup_connection():
     """Test the SFTP connection and return JSON {ok, message}."""
-    if not backup_service.is_configured():
-        return jsonify(ok=False, message="Backup is not fully configured.")
+    try:
+        if not backup_service.is_configured():
+            return jsonify(ok=False, message="Backup is not fully configured.")
 
-    backup_config = Settings.get_backup_config()
-    scp_config = {
-        "host": Settings.get("backup_scp_host"),
-        "port": int(Settings.get("backup_scp_port", "22") or "22"),
-        "user": Settings.get("backup_scp_user"),
-        "key_content": Settings.get("backup_scp_key_content"),
-        "remote_path": backup_config["scp_remote_path"],
-    }
-    ok, message = backup_service.test_sftp_connection(scp_config)
-    return jsonify(ok=ok, message=message)
+        scp_config = {
+            "host": Settings.get("backup_scp_host"),
+            "port": int(Settings.get("backup_scp_port", "22") or "22"),
+            "user": Settings.get("backup_scp_user"),
+            "key_content": Settings.get("backup_scp_key_content"),
+        }
+        ok, message = backup_service.test_sftp_connection(scp_config)
+        return jsonify(ok=ok, message=message)
+    except Exception as exc:
+        current_app.logger.exception("Unexpected error in test_backup_connection")
+        return jsonify(ok=False, message=f"Server error: {exc}"), 500
 
 
 @bp.route("/run-backup", methods=["POST"])

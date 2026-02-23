@@ -182,7 +182,7 @@ def test_sftp_connection(scp_config: dict) -> tuple[bool, str]:
             pkey=pkey,
             look_for_keys=False,
             allow_agent=False,
-            timeout=10,
+            timeout=8,
         )
         return True, f"Connected to {scp_config['host']} successfully."
     except Exception as exc:

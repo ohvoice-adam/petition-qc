@@ -222,23 +222,38 @@ async function testBackupConnection() {
     btn.disabled = true;
     btn.textContent = 'Testing\u2026';
     result.className = 'text-sm text-gray-500 dark:text-gray-400';
-    result.textContent = '';
+    result.textContent = 'Connecting\u2026';
     result.classList.remove('hidden');
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
 
     try {
         const resp = await fetch('{{ url_for("settings.test_backup_connection") }}', {
             method: 'POST',
+            signal: controller.signal,
         });
-        const data = await resp.json();
-        if (data.ok) {
-            result.className = 'text-sm font-medium text-green-700 dark:text-green-400';
-        } else {
+        clearTimeout(timer);
+
+        let data;
+        try {
+            data = await resp.json();
+        } catch (_) {
             result.className = 'text-sm font-medium text-red-600 dark:text-red-400';
+            result.textContent = `Server error (HTTP ${resp.status}) — check application logs.`;
+            return;
         }
+
+        result.className = data.ok
+            ? 'text-sm font-medium text-green-700 dark:text-green-400'
+            : 'text-sm font-medium text-red-600 dark:text-red-400';
         result.textContent = data.message;
     } catch (e) {
+        clearTimeout(timer);
         result.className = 'text-sm font-medium text-red-600 dark:text-red-400';
-        result.textContent = 'Request failed: ' + e.message;
+        result.textContent = e.name === 'AbortError'
+            ? 'Timed out — the host may be unreachable or the server is not responding.'
+            : 'Connection to server lost — check that the application is running.';
     } finally {
         btn.disabled = false;
         btn.textContent = 'Test Connection';
