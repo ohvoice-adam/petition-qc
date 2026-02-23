@@ -12,6 +12,7 @@ sqlalchemy>=2.0.0
 # Utilities
 python-dotenv>=1.0.0
 gunicorn>=21.0.0
+paramiko>=3.0.0
 
 # Development
 pytest>=8.0.0

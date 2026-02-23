@@ -37,7 +37,7 @@
             <div>
                 <label for="book_number" class="block text-sm font-medium text-gray-300">Book Number</label>
                 <input type="text" name="book_number" id="book_number" required
-                       class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
+                       class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500"
                        placeholder="Enter book number">
                 <div id="book-warning" class="hidden mt-2 p-3 bg-yellow-900/50 border border-yellow-600 rounded-md text-yellow-200 text-sm">
                     <strong>Warning:</strong> Book <span id="existing-book-number"></span> already exists (Collector: <span id="existing-collector"></span>).
@@ -47,7 +47,7 @@
             <div>
                 <label for="collector_id" class="block text-sm font-medium text-gray-300">Collector</label>
                 <select name="collector_id" id="collector_id" required
-                        class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+                        class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
                     <option value="">Select a collector...</option>
                     {% for collector in collectors %}
                     <option value="{{ collector.id }}">{{ collector.display_name }}</option>
@@ -60,18 +60,18 @@
                     <label for="date_out" class="block text-sm font-medium text-gray-300">Date Out</label>
                     <input type="date" name="date_out" id="date_out"
                            value="{{ today }}"
-                           class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+                           class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
                 </div>
                 <div>
                     <label for="date_back" class="block text-sm font-medium text-gray-300">Date In</label>
                     <input type="date" name="date_back" id="date_back"
                            value="{{ today }}"
-                           class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+                           class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
                 </div>
             </div>
 
             <button type="submit" id="submit-btn"
-                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
+                    class="w-full bg-accent-500 hover:bg-accent-600 text-white font-medium py-2 px-4 rounded-md">
                 Start Session
             </button>
         </form>
@@ -119,7 +119,7 @@
                             existingCollectorSpan.textContent = data.collector;
                             warningDiv.classList.remove('hidden');
                             submitBtn.textContent = 'Continue Anyway';
-                            submitBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700');
+                            submitBtn.classList.remove('bg-accent-500', 'hover:bg-accent-600');
                             submitBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
                         } else {
                             warningDiv.classList.add('hidden');
@@ -142,7 +142,7 @@
                     warningDiv.classList.add('hidden');
                     submitBtn.textContent = 'Start Session';
                     submitBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
-                    submitBtn.classList.add('bg-purple-600', 'hover:bg-purple-700');
+                    submitBtn.classList.add('bg-accent-500', 'hover:bg-accent-600');
                     overrideInput.value = '';
                     checkedBook = null;
                     bookExists = false;
@@ -152,7 +152,7 @@
         </script>
 
         <div class="mt-4 text-center">
-            <a href="{{ url_for('collectors.new') }}" class="text-purple-400 hover:text-purple-300 text-sm">
+            <a href="{{ url_for('collectors.new') }}" class="text-navy-400 hover:text-navy-300 text-sm">
                 + Add New Collector
             </a>
         </div>

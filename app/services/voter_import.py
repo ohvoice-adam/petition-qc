@@ -70,12 +70,63 @@ class VoterImportService:
 
     @classmethod
     def cancel_import(cls, import_id):
-        """Signal cancellation to a running import."""
+        """Signal cancellation to a running import.
+
+        Returns True if the thread was signalled, False if no thread is running
+        (e.g. the process was killed and restarted).
+        """
         with cls._lock:
             if import_id in cls._running_imports:
                 cls._running_imports[import_id]["cancel"] = True
                 return True
         return False
+
+    @classmethod
+    def force_cancel_import(cls, import_id):
+        """Force-cancel an import whose thread is no longer running.
+
+        Used when the app was killed mid-import and the in-memory thread state
+        is gone but the DB record is still marked as running.
+        """
+        voter_import = db.session.get(VoterImport, import_id)
+        if not voter_import:
+            return
+
+        voter_import.status = ImportStatus.FAILED
+        voter_import.error_message = "Cancelled: import was orphaned after an unexpected shutdown"
+        voter_import.completed_at = datetime.utcnow()
+        db.session.commit()
+
+        try:
+            cls._restore_from_backup(voter_import)
+        except Exception:
+            db.session.rollback()
+
+    @classmethod
+    def recover_stale_imports(cls):
+        """Recover imports stuck in running/pending state from a previous crash.
+
+        Called once at app startup.
+        """
+        stale = VoterImport.query.filter(
+            VoterImport.status.in_([ImportStatus.RUNNING, ImportStatus.PENDING])
+        ).all()
+
+        for voter_import in stale:
+            voter_import.status = ImportStatus.FAILED
+            voter_import.error_message = "Failed: application was shut down while import was in progress"
+            voter_import.completed_at = datetime.utcnow()
+
+        if stale:
+            db.session.commit()
+
+        # Attempt backup restore for any that had backups
+        for voter_import in stale:
+            if voter_import.backup_table:
+                try:
+                    cls._restore_from_backup(voter_import)
+                except Exception:
+                    db.session.rollback()
 
     @classmethod
     def _is_cancelled(cls, import_id):

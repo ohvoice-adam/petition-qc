@@ -4,9 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Petition QC{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { darkMode: 'class' }
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f0f5fa',
+                            100: '#dae5f0',
+                            200: '#b5cce2',
+                            300: '#8ab0d0',
+                            400: '#5e93bf',
+                            500: '#3576ad',
+                            600: '#0c3e6b',
+                            700: '#0a3459',
+                            800: '#082a48',
+                            900: '#061f36',
+                            950: '#041525',
+                        },
+                        accent: {
+                            50: '#fff6ed',
+                            100: '#ffe8d4',
+                            200: '#ffcda8',
+                            300: '#ffab70',
+                            400: '#ff8537',
+                            500: '#f56708',
+                            600: '#dc5804',
+                            700: '#b64308',
+                            800: '#91360e',
+                            900: '#752e0f',
+                            950: '#401405',
+                        },
+                    },
+                },
+            },
+        }
     </script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script>
@@ -30,8 +66,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center space-x-4">
-                    <a href="{{ url_for('main.index') }}" class="text-xl font-bold text-purple-600 dark:text-purple-400">
-                        Petition QC
+                    <a href="{{ url_for('main.index') }}" class="flex items-center space-x-2 text-xl font-bold text-navy-600 dark:text-navy-400">
+                        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Petition QC" class="h-8 w-8">
+                        <span>Petition QC</span>
                     </a>
                     {% if current_user.is_authenticated %}
                     <a href="{{ url_for('signatures.entry') }}" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2">

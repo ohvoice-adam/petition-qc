@@ -7,7 +7,7 @@
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">Manage Users</h1>
         <a href="{{ url_for('users.new') }}"
-           class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
+           class="bg-accent-500 hover:bg-accent-600 text-white font-medium py-2 px-4 rounded-md">
             Add User
         </a>
     </div>
@@ -30,7 +30,7 @@
                     <td class="px-6 py-4 whitespace-nowrap">
                         {{ user.full_name }}
                         {% if user.id == current_user.id %}
-                        <span class="ml-2 text-xs text-purple-600 dark:text-purple-400">(you)</span>
+                        <span class="ml-2 text-xs text-navy-600 dark:text-navy-400">(you)</span>
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ user.email }}</td>
@@ -39,7 +39,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         {% if user.is_admin %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-navy-100 dark:bg-navy-900 text-navy-800 dark:text-navy-200">
                             Admin
                         </span>
                         {% else %}
@@ -61,7 +61,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap space-x-3">
                         <a href="{{ url_for('users.edit', id=user.id) }}"
-                           class="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300">
+                           class="text-navy-600 dark:text-navy-400 hover:text-navy-800 dark:hover:text-navy-300">
                             Edit
                         </a>
                         {% if user.id != current_user.id %}

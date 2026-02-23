@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required
 from sqlalchemy import text
 
 from app import db
 from app.models import Settings, admin_required
+from app.services import backup as backup_service
 
 bp = Blueprint("settings", __name__)
 
@@ -31,19 +32,49 @@ def index():
         flash("Settings saved", "success")
         return redirect(url_for("settings.index"))
 
-    # Get current settings
     current_city = Settings.get_target_city()
     signature_goal = Settings.get_signature_goal()
-
-    # Get distinct cities from voter file
     cities = get_distinct_cities()
+    backup_config = Settings.get_backup_config()
+    backup_configured = backup_service.is_configured()
 
     return render_template(
         "settings/index.html",
         current_city=current_city,
         cities=cities,
         signature_goal=signature_goal,
+        backup_config=backup_config,
+        backup_configured=backup_configured,
     )
+
+
+@bp.route("/save-backup-config", methods=["POST"])
+@login_required
+@admin_required
+def save_backup_config():
+    """Save SCP backup configuration."""
+    Settings.save_backup_config(
+        host=request.form.get("scp_host", ""),
+        port=request.form.get("scp_port", "22"),
+        user=request.form.get("scp_user", ""),
+        key_path=request.form.get("scp_key_path", ""),
+        remote_path=request.form.get("scp_remote_path", ""),
+    )
+    flash("Backup configuration saved", "success")
+    return redirect(url_for("settings.index"))
+
+
+@bp.route("/run-backup", methods=["POST"])
+@login_required
+@admin_required
+def run_backup():
+    """Trigger an asynchronous database backup."""
+    try:
+        backup_service.run_backup_async(current_app._get_current_object())
+        flash("Backup started. Check status below.", "success")
+    except ValueError as exc:
+        flash(str(exc), "error")
+    return redirect(url_for("settings.index"))
 
 
 def get_distinct_cities() -> list[dict]:

@@ -1,7 +1,10 @@
+import sys
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from sqlalchemy.exc import OperationalError
 
 from app.config import Config
 
@@ -44,7 +47,10 @@ def create_app(config_class=Config):
     # Create tables and enable pg_trgm
     with app.app_context():
         from app.models import User, Voter, Signature, Book, Batch, Collector, DataEnterer, Settings, VoterImport
-        db.create_all()
+        try:
+            db.create_all()
+        except OperationalError as e:
+            sys.exit(f"Error: Could not connect to the database. Is PostgreSQL running?\n{e}")
 
         # Enable pg_trgm extension
         try:
@@ -52,5 +58,9 @@ def create_app(config_class=Config):
             db.session.commit()
         except Exception:
             db.session.rollback()
+
+        # Recover imports left in running/pending state from a previous crash
+        from app.services.voter_import import VoterImportService
+        VoterImportService.recover_stale_imports()
 
     return app

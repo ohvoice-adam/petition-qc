@@ -7,7 +7,7 @@
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">Data Enterers</h1>
         <a href="{{ url_for('collectors.new_enterer') }}"
-           class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
+           class="bg-accent-500 hover:bg-accent-600 text-white font-medium py-2 px-4 rounded-md">
             Add Enterer
         </a>
     </div>
@@ -32,7 +32,7 @@
                 <tr>
                     <td colspan="3" class="px-6 py-8 text-center text-gray-500">
                         No data enterers yet.
-                        <a href="{{ url_for('collectors.new_enterer') }}" class="text-purple-400 hover:text-purple-300">Add one</a>
+                        <a href="{{ url_for('collectors.new_enterer') }}" class="text-navy-400 hover:text-navy-300">Add one</a>
                     </td>
                 </tr>
                 {% endfor %}

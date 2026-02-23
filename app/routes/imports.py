@@ -100,18 +100,23 @@ def cancel(import_id):
         flash("Import not found", "error")
         return redirect(url_for("imports.index"))
 
-    if voter_import.status != ImportStatus.RUNNING:
+    if voter_import.status not in (ImportStatus.RUNNING, ImportStatus.PENDING):
         flash("Import is not running", "error")
         return redirect(url_for("imports.index"))
 
-    # Set cancellation flag in database (for persistence)
-    voter_import.cancel_requested = True
-    db.session.commit()
+    # Try to signal the running thread
+    thread_signalled = VoterImportService.cancel_import(import_id)
 
-    # Signal the running thread
-    VoterImportService.cancel_import(import_id)
+    if thread_signalled:
+        # Thread is alive — set DB flag and let the thread handle it
+        voter_import.cancel_requested = True
+        db.session.commit()
+        flash("Cancellation requested", "info")
+    else:
+        # Thread is dead (e.g. process was killed) — force-cancel directly
+        VoterImportService.force_cancel_import(import_id)
+        flash("Import was orphaned and has been cancelled", "info")
 
-    flash("Cancellation requested", "info")
     return redirect(url_for("imports.index"))
 
 

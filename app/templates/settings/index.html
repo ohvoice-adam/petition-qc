@@ -3,10 +3,13 @@
 {% block title %}Settings - Petition QC{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold mb-6">Settings</h1>
+<div class="max-w-2xl mx-auto space-y-8">
+    <h1 class="text-2xl font-bold">Settings</h1>
 
+    <!-- ── Application Settings ── -->
     <form method="POST" class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm space-y-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Application Settings</h2>
+
         <div>
             <label for="target_city" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Target City for Signature Verification
@@ -15,7 +18,7 @@
                 Signatures from residents of this city will be counted as "verified". Statistics will show the percentage of signatures from this city.
             </p>
             <select name="target_city" id="target_city"
-                    class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+                    class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
                 {% for city in cities %}
                 <option value="{{ city.value }}" {% if city.value == current_city %}selected{% endif %}>
                     {{ city.label }} ({{ "{:,}".format(city.count) }} voters)
@@ -35,7 +38,7 @@
                    value="{{ signature_goal or '' }}"
                    min="0" step="1"
                    placeholder="e.g., 5000"
-                   class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 focus:border-purple-500 focus:ring-purple-500">
+                   class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
         </div>
 
         <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -43,10 +46,134 @@
                 Currently set to: <span class="font-medium text-gray-900 dark:text-white">{{ current_city.title() if current_city else 'Not set' }}</span>
             </div>
             <button type="submit"
-                    class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md">
+                    class="bg-accent-500 hover:bg-accent-600 text-white font-medium py-2 px-4 rounded-md">
                 Save Settings
             </button>
         </div>
     </form>
+
+    <!-- ── Backup Configuration ── -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm space-y-6">
+        <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Database Backup</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Backs up all tables except the voter file via SCP/SFTP to a remote server.
+                The backup is in PostgreSQL custom format and can be restored with
+                <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">pg_restore</code>.
+            </p>
+        </div>
+
+        <!-- Backup status -->
+        <div class="rounded-md px-4 py-3 text-sm
+            {% if backup_config.last_status == 'running' %}
+                bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-700
+            {% elif backup_config.last_status == 'success' %}
+                bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700
+            {% elif backup_config.last_status.startswith('error:') %}
+                bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-700
+            {% else %}
+                bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600
+            {% endif %}">
+            {% if backup_config.last_status == 'running' %}
+                <span class="font-medium">Backup in progress&hellip;</span>
+                Reload the page to check the result.
+            {% elif backup_config.last_status == 'success' %}
+                <span class="font-medium">Last backup succeeded.</span>
+                {% if backup_config.last_run %}
+                    Started {{ backup_config.last_run[:19].replace('T', ' ') }}.
+                {% endif %}
+            {% elif backup_config.last_status.startswith('error:') %}
+                <span class="font-medium">Last backup failed:</span>
+                {{ backup_config.last_status[6:] }}
+            {% else %}
+                No backups have been run yet.
+            {% endif %}
+        </div>
+
+        <!-- Run backup button -->
+        {% if backup_configured %}
+        <form method="POST" action="{{ url_for('settings.run_backup') }}">
+            <button type="submit"
+                    {% if backup_config.last_status == 'running' %}disabled{% endif %}
+                    class="bg-navy-600 hover:bg-navy-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-md text-sm">
+                {% if backup_config.last_status == 'running' %}
+                    Backup Running&hellip;
+                {% else %}
+                    Run Backup Now
+                {% endif %}
+            </button>
+        </form>
+        {% endif %}
+
+        <!-- SCP configuration form -->
+        <form method="POST" action="{{ url_for('settings.save_backup_config') }}"
+              class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">SCP / SFTP Configuration</h3>
+
+            <div class="grid grid-cols-3 gap-4">
+                <div class="col-span-2">
+                    <label for="scp_host" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Host
+                    </label>
+                    <input type="text" name="scp_host" id="scp_host"
+                           value="{{ backup_config.scp_host }}"
+                           placeholder="backup.example.com"
+                           class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-navy-500 focus:ring-navy-500">
+                </div>
+                <div>
+                    <label for="scp_port" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Port
+                    </label>
+                    <input type="number" name="scp_port" id="scp_port"
+                           value="{{ backup_config.scp_port or '22' }}"
+                           min="1" max="65535"
+                           class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-navy-500 focus:ring-navy-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="scp_user" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Username
+                </label>
+                <input type="text" name="scp_user" id="scp_user"
+                       value="{{ backup_config.scp_user }}"
+                       placeholder="backupuser"
+                       class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-navy-500 focus:ring-navy-500">
+            </div>
+
+            <div>
+                <label for="scp_key_path" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    SSH Private Key Path
+                </label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Absolute path to the private key file on this server (e.g. <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">/home/petition/.ssh/backup_key</code>).
+                </p>
+                <input type="text" name="scp_key_path" id="scp_key_path"
+                       value="{{ backup_config.scp_key_path }}"
+                       placeholder="/home/petition/.ssh/backup_key"
+                       class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 text-sm font-mono focus:border-navy-500 focus:ring-navy-500">
+            </div>
+
+            <div>
+                <label for="scp_remote_path" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Remote Directory
+                </label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Directory on the remote server where backups will be stored. Must already exist and be writable.
+                </p>
+                <input type="text" name="scp_remote_path" id="scp_remote_path"
+                       value="{{ backup_config.scp_remote_path }}"
+                       placeholder="/backups/petition-qc"
+                       class="block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 text-sm font-mono focus:border-navy-500 focus:ring-navy-500">
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit"
+                        class="bg-accent-500 hover:bg-accent-600 text-white font-medium py-2 px-4 rounded-md text-sm">
+                    Save Backup Config
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

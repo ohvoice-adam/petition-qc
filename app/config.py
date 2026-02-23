@@ -10,6 +10,9 @@ class Config:
         "DATABASE_URL", "postgresql://localhost:5432/petition_qc"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "connect_args": {"connect_timeout": 5},
+    }
 
     # Search settings
     SEARCH_RESULTS_LIMIT = 100  # Fewer results = faster response
