@@ -163,32 +163,39 @@ def _load_pkey(key_content: str):
     )
 
 
-def test_sftp_connection(scp_config: dict) -> tuple[bool, str]:
-    """Attempt an SSH connection and return (success, message)."""
+def _make_ssh_client(scp_config: dict, timeout: int):
+    """Return a connected paramiko SSHClient.
+
+    Disables the legacy ssh-rsa (SHA-1) algorithm so that modern OpenSSH
+    servers (8.8+, which reject SHA-1 by default) accept the connection.
+    rsa-sha2-256 and rsa-sha2-512 are tried automatically instead.
+    """
     import paramiko
 
-    try:
-        pkey = _load_pkey(scp_config["key_content"])
-    except ValueError as exc:
-        return False, str(exc)
-
+    pkey = _load_pkey(scp_config["key_content"])
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(
+        scp_config["host"],
+        port=scp_config["port"],
+        username=scp_config["user"],
+        pkey=pkey,
+        look_for_keys=False,
+        allow_agent=False,
+        timeout=timeout,
+        disabled_algorithms={"pubkeys": ["ssh-rsa"]},
+    )
+    return client
+
+
+def test_sftp_connection(scp_config: dict) -> tuple[bool, str]:
+    """Attempt an SSH connection and return (success, message)."""
     try:
-        client.connect(
-            scp_config["host"],
-            port=scp_config["port"],
-            username=scp_config["user"],
-            pkey=pkey,
-            look_for_keys=False,
-            allow_agent=False,
-            timeout=8,
-        )
+        client = _make_ssh_client(scp_config, timeout=8)
+        client.close()
         return True, f"Connected to {scp_config['host']} successfully."
     except Exception as exc:
         return False, str(exc)
-    finally:
-        client.close()
 
 
 def run_backup_sync(app) -> None:
@@ -210,23 +217,8 @@ def run_backup_sync(app) -> None:
 
 def _sftp_upload(local_path: str, scp_config: dict) -> None:
     """Upload a file to the remote server via SFTP (SSH)."""
-    import paramiko
-
-    pkey = _load_pkey(scp_config["key_content"])
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
+    client = _make_ssh_client(scp_config, timeout=30)
     try:
-        client.connect(
-            scp_config["host"],
-            port=scp_config["port"],
-            username=scp_config["user"],
-            pkey=pkey,
-            look_for_keys=False,
-            allow_agent=False,
-            timeout=30,
-        )
-
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         remote_filename = f"petition-qc-backup-{timestamp}.dump"
         remote_dir = scp_config["remote_path"].rstrip("/")
