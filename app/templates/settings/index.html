@@ -110,6 +110,9 @@
                     class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium py-2 px-4 rounded-md text-sm">
                 Test Connection
             </button>
+            <input type="password" id="test-password"
+                   placeholder="Password (optional, not saved)"
+                   class="rounded-md bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-navy-500 focus:ring-navy-500 w-56">
             <span id="test-conn-result" class="text-sm hidden"></span>
         </div>
         {% endif %}
@@ -228,9 +231,14 @@ async function testBackupConnection() {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 12000);
 
+    const body = new FormData();
+    const pw = document.getElementById('test-password').value;
+    if (pw) body.append('test_password', pw);
+
     try {
         const resp = await fetch('{{ url_for("settings.test_backup_connection") }}', {
             method: 'POST',
+            body: body,
             signal: controller.signal,
         });
         clearTimeout(timer);

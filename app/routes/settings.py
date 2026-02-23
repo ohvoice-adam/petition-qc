@@ -98,7 +98,8 @@ def test_backup_connection():
             "user": Settings.get("backup_scp_user"),
             "key_content": Settings.get("backup_scp_key_content"),
         }
-        ok, message = backup_service.test_sftp_connection(scp_config)
+        password = request.form.get("test_password") or None
+        ok, message = backup_service.test_sftp_connection(scp_config, password=password)
         return jsonify(ok=ok, message=message)
     except Exception as exc:
         current_app.logger.exception("Unexpected error in test_backup_connection")
