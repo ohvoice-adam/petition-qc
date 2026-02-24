@@ -54,8 +54,13 @@ def create_app(config_class=Config):
         except Exception:
             pass
 
-    # Start the backup scheduler (reads schedule setting from DB)
-    from app.services.scheduler import init_app as init_scheduler
-    init_scheduler(app)
+    # Start the backup scheduler (reads schedule setting from DB).
+    # Wrapped in try/except because this runs during `flask db upgrade`
+    # before migrations have created the settings table.
+    try:
+        from app.services.scheduler import init_app as init_scheduler
+        init_scheduler(app)
+    except Exception:
+        pass
 
     return app
