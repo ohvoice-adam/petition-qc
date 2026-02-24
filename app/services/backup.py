@@ -4,6 +4,7 @@ import io
 import logging
 import os
 import posixpath
+import re
 import subprocess
 import tempfile
 import threading
@@ -93,10 +94,12 @@ def _backup_thread(app) -> None:
         except Exception:
             server_major = None
 
+        schedule = Settings.get("backup_schedule", "")
+
         dump_file = None
         try:
             dump_file = _create_pg_dump(db_url, server_major)
-            _sftp_upload(dump_file, scp_config)
+            _sftp_upload(dump_file, scp_config, schedule=schedule)
             Settings.set("backup_last_status", "success")
         except Exception as exc:
             logger.exception("Backup failed")
@@ -332,8 +335,94 @@ def run_backup_sync(app) -> None:
     _backup_thread(app)
 
 
-def _sftp_upload(local_path: str, scp_config: dict) -> None:
-    """Upload a file to the remote server via SFTP (SSH)."""
+# ---------------------------------------------------------------------------
+# Retention helpers
+# ---------------------------------------------------------------------------
+
+_BACKUP_RE = re.compile(r"^petition-qc-backup-(\d{8})-(\d{6})\.dump$")
+
+
+def _parse_backup_dt(filename: str) -> datetime | None:
+    """Parse the timestamp embedded in a backup filename, or return None."""
+    m = _BACKUP_RE.match(filename)
+    if not m:
+        return None
+    try:
+        return datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S")
+    except ValueError:
+        return None
+
+
+def _apply_retention(sftp, remote_dir: str, schedule: str) -> None:
+    """Delete remote backup files that fall outside the retention policy.
+
+    Retention rules
+    ───────────────
+    hourly : last 12 hourlies  +  last 7 daily (02:00) slots
+                               +  last 4 weekly (Sun 02:00) slots
+    daily  : last 7 dailies    +  last 4 weekly (Sun 02:00) slots
+    weekly : last 4 weeklies
+    """
+    if schedule not in ("hourly", "daily", "weekly"):
+        return
+
+    try:
+        names = sftp.listdir(remote_dir)
+    except Exception as exc:
+        logger.warning("Retention: could not list %s: %s", remote_dir, exc)
+        return
+
+    # Build sorted list (newest first) of (datetime, filename) pairs.
+    backups = sorted(
+        ((dt, n) for n in names if (dt := _parse_backup_dt(n)) is not None),
+        reverse=True,
+    )
+
+    keep: set[str] = set()
+
+    if schedule == "hourly":
+        # Last 12 hourlies (any time)
+        for _, name in backups[:12]:
+            keep.add(name)
+        # Last 7 daily slots (02:00 UTC, any weekday)
+        dailies = [(dt, n) for dt, n in backups if dt.hour == 2 and dt.minute == 0]
+        for _, name in dailies[:7]:
+            keep.add(name)
+        # Last 4 weekly slots (Sunday 02:00 UTC)
+        weeklies = [(dt, n) for dt, n in dailies if dt.weekday() == 6]
+        for _, name in weeklies[:4]:
+            keep.add(name)
+
+    elif schedule == "daily":
+        # Last 7 dailies (any time, since only one runs per day)
+        for _, name in backups[:7]:
+            keep.add(name)
+        # Last 4 weekly slots (Sunday 02:00 UTC)
+        weeklies = [(dt, n) for dt, n in backups if dt.weekday() == 6 and dt.hour == 2 and dt.minute == 0]
+        for _, name in weeklies[:4]:
+            keep.add(name)
+
+    elif schedule == "weekly":
+        # Last 4 weeklies
+        for _, name in backups[:4]:
+            keep.add(name)
+
+    for dt, name in backups:
+        if name not in keep:
+            path = posixpath.join(remote_dir, name)
+            try:
+                sftp.remove(path)
+                logger.info("Retention: removed %s", name)
+            except Exception as exc:
+                logger.warning("Retention: could not remove %s: %s", name, exc)
+
+
+# ---------------------------------------------------------------------------
+# SFTP upload
+# ---------------------------------------------------------------------------
+
+def _sftp_upload(local_path: str, scp_config: dict, schedule: str = "") -> None:
+    """Upload *local_path* to the remote server and apply the retention policy."""
     client = _make_ssh_client(scp_config, timeout=30)
     try:
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -343,6 +432,7 @@ def _sftp_upload(local_path: str, scp_config: dict) -> None:
 
         sftp = client.open_sftp()
         sftp.put(local_path, remote_path)
+        _apply_retention(sftp, remote_dir, schedule)
         sftp.close()
     finally:
         client.close()
