@@ -8,7 +8,6 @@ import subprocess
 import tempfile
 import threading
 from datetime import datetime
-from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -101,32 +100,22 @@ def _backup_thread(app) -> None:
 
 def _create_pg_dump(db_url: str) -> str:
     """Run pg_dump for BACKUP_TABLES only and return the path to the dump file."""
-    # SQLAlchemy may prefix the URL with the driver name (e.g. postgresql+psycopg2://)
+    # Strip SQLAlchemy driver prefixes (e.g. postgresql+psycopg2://)
     clean_url = db_url.replace("+psycopg2", "").replace("+pg8000", "")
-    parsed = urlparse(clean_url)
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     fd, dump_path = tempfile.mkstemp(suffix=f"-petition-qc-{timestamp}.dump")
     os.close(fd)
 
-    cmd = ["pg_dump", "--format=custom"]
+    # Pass the full URI via --dbname so pg_dump receives the password and all
+    # connection parameters exactly as SQLAlchemy uses them, avoiding the need
+    # to set PGPASSWORD separately.
+    cmd = ["pg_dump", "--format=custom", "--dbname", clean_url]
     for table in BACKUP_TABLES:
         cmd.extend(["--table", table])
-    if parsed.hostname:
-        cmd.extend(["-h", parsed.hostname])
-    if parsed.port:
-        cmd.extend(["-p", str(parsed.port)])
-    if parsed.username:
-        cmd.extend(["-U", parsed.username])
-    dbname = parsed.path.lstrip("/")
-    cmd.append(dbname)
-
-    env = os.environ.copy()
-    if parsed.password:
-        env["PGPASSWORD"] = parsed.password
 
     with open(dump_path, "wb") as f:
-        result = subprocess.run(cmd, stdout=f, stderr=subprocess.PIPE, env=env)
+        result = subprocess.run(cmd, stdout=f, stderr=subprocess.PIPE)
 
     if result.returncode != 0:
         os.unlink(dump_path)
