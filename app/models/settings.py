@@ -75,11 +75,28 @@ class Settings(db.Model):
             "scp_port": cls.get("backup_scp_port", "22"),
             "scp_user": cls.get("backup_scp_user", ""),
             "has_key": bool(cls.get("backup_scp_key_content")),
+            "key_fingerprint": cls._compute_key_fingerprint(),
             "scp_remote_path": cls.get("backup_scp_remote_path", ""),
             "schedule": cls.get("backup_schedule", ""),
             "last_run": cls.get("backup_last_run", ""),
             "last_status": cls.get("backup_last_status", ""),
         }
+
+    @classmethod
+    def _compute_key_fingerprint(cls) -> str:
+        """Return the SHA-256 fingerprint of the stored key (OpenSSH format)."""
+        key_content = cls.get("backup_scp_key_content")
+        if not key_content:
+            return ""
+        try:
+            import base64
+            import hashlib
+            from app.services.backup import _load_pkey
+            pkey = _load_pkey(key_content)
+            digest = hashlib.sha256(pkey.asbytes()).digest()
+            return "SHA256:" + base64.b64encode(digest).decode().rstrip("=")
+        except Exception:
+            return "(error computing fingerprint)"
 
     @classmethod
     def save_backup_config(

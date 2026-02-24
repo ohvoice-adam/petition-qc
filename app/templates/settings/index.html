@@ -159,9 +159,13 @@
                     SSH Private Key
                 </label>
                 {% if backup_config.has_key %}
-                <p class="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 mb-2">
+                <p class="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400 mb-1">
                     <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414L8.414 15l-4.121-4.121a1 1 0 011.414-1.414L8.414 12.172l7.879-7.879a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                     Key configured. Upload a new file to replace it.
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mb-2">
+                    Fingerprint: {{ backup_config.key_fingerprint }}
+                    &mdash; compare with <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">ssh-keygen -l -f ~/.ssh/id_rsa</code>
                 </p>
                 {% else %}
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
