@@ -1,4 +1,66 @@
-# Deployment Guide: Linux Server
+# Deployment Guide
+
+Two deployment options are available: **Docker** (recommended — single command) or **manual Linux server** setup.
+
+---
+
+## Option A: Docker (Recommended)
+
+Spins up PostgreSQL 18, Flask/Gunicorn, and Caddy (automatic HTTPS via Let's Encrypt) with a single command.
+
+### Prerequisites
+
+- A server with Docker and Docker Compose v2 installed
+- A domain name pointed at the server's IP (required for Let's Encrypt)
+
+### Quick Start
+
+```bash
+# Clone the repo
+git clone https://github.com/ohvoice-adam/petition-qc.git
+cd petition-qc
+
+# Create your .env from the example
+cp .env.example .env
+nano .env          # set DOMAIN, POSTGRES_PASSWORD, SECRET_KEY
+```
+
+Generate a strong secret key:
+
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Start everything:
+
+```bash
+docker compose up -d
+```
+
+The app will be available at `https://your-domain.com` within a minute or two (Caddy provisions the certificate automatically).
+
+### Managing the Deployment
+
+```bash
+# View logs
+docker compose logs -f
+
+# Stop
+docker compose down
+
+# Deploy an update
+git pull
+docker compose build
+docker compose up -d
+```
+
+### Backups
+
+The upload volume (`uploads`) and database volume (`postgres_data`) are Docker named volumes. The built-in SFTP backup feature (Settings → Database Backup) works identically to the manual deployment — configure host, user, SSH key, and remote path in the web UI.
+
+---
+
+## Option B: Manual Linux Server
 
 This guide covers deploying Petition QC on a Linux server (Ubuntu 22.04/24.04 or Debian 12) using Gunicorn behind Nginx with PostgreSQL.
 
@@ -264,8 +326,8 @@ Then in the Petition QC web UI (Settings page), configure:
 - **SCP Host**: backup server hostname or IP
 - **SCP Port**: 22 (or your custom SSH port)
 - **SCP User**: username on the backup server
-- **SSH Key Path**: `/home/petition/.ssh/backup_key`
-- **Remote Path**: directory on backup server (e.g., `/backups/petition-qc`)
+- **SSH Private Key**: upload the private key file (`/home/petition/.ssh/backup_key`)
+- **Remote Directory**: directory on backup server (e.g., `/backups/petition-qc`)
 
 Backups are in PostgreSQL custom format. To restore:
 
@@ -275,18 +337,7 @@ pg_restore -d petition_qc /path/to/backup.dump
 
 ### Automated Scheduled Backups
 
-To run backups on a schedule, add a cron job (as the `petition` user):
-
-```bash
-sudo -u petition crontab -e
-```
-
-```cron
-# Run backup daily at 2 AM
-0 2 * * * curl -s -X POST -b "session=..." https://your-domain.com/settings/run-backup
-```
-
-Or use the systemd timer approach with a simple curl script.
+Configure the schedule directly in the web UI (Settings → Database Backup → Automatic Schedule). Options are hourly, daily (02:00 UTC), and weekly (Sunday 02:00 UTC). The app's built-in scheduler handles timing automatically — no cron setup required.
 
 ---
 
