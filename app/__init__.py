@@ -47,17 +47,18 @@ def create_app(config_class=Config):
     # Create tables and enable pg_trgm
     with app.app_context():
         from app.models import User, Voter, Signature, Book, Batch, Collector, DataEnterer, Settings, VoterImport
-        try:
-            db.create_all()
-        except OperationalError as e:
-            sys.exit(f"Error: Could not connect to the database. Is PostgreSQL running?\n{e}")
 
-        # Enable pg_trgm extension
+        # Enable pg_trgm before create_all so GIN trigram indexes succeed
         try:
             db.session.execute(db.text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
             db.session.commit()
         except Exception:
             db.session.rollback()
+
+        try:
+            db.create_all()
+        except OperationalError as e:
+            sys.exit(f"Error: Could not connect to the database. Is PostgreSQL running?\n{e}")
 
         # Recover imports left in running/pending state from a previous crash
         from app.services.voter_import import VoterImportService
