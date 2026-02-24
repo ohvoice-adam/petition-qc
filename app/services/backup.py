@@ -228,34 +228,58 @@ def test_sftp_connection(scp_config: dict, password: str | None = None) -> tuple
     except ValueError as exc:
         return False, str(exc)
 
+    # Capture paramiko's transport-level DEBUG log for the first attempt so
+    # the caller can see exactly what the server is accepting/rejecting.
+    log_stream = io.StringIO()
+    log_handler = logging.StreamHandler(log_stream)
+    log_handler.setLevel(logging.DEBUG)
+    paramiko_log = logging.getLogger("paramiko")
+    original_level = paramiko_log.level
+    paramiko_log.setLevel(logging.DEBUG)
+    paramiko_log.addHandler(log_handler)
+
     strategies = [
         ("Auto (rsa-sha2-512/256/ssh-rsa)",    {}),
         ("SHA-2 only (rsa-sha2-512/256)",       {"disabled_algorithms": {"pubkeys": ["ssh-rsa"]}}),
         ("Legacy SHA-1 only (ssh-rsa)",         {"disabled_algorithms": {"pubkeys": ["rsa-sha2-512", "rsa-sha2-256"]}}),
     ]
     errors = []
-    for label, extra_kwargs in strategies:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        try:
-            client.connect(
-                host,
-                port=scp_config["port"],
-                username=scp_config["user"],
-                pkey=pkey,
-                look_for_keys=False,
-                allow_agent=False,
-                timeout=8,
-                **extra_kwargs,
-            )
-            client.close()
-            return True, f"Connected to {host} successfully [{label}]."
-        except Exception as exc:
-            errors.append(f"{label}: {exc}")
-        finally:
-            client.close()
+    try:
+        for label, extra_kwargs in strategies:
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            try:
+                client.connect(
+                    host,
+                    port=scp_config["port"],
+                    username=scp_config["user"],
+                    pkey=pkey,
+                    look_for_keys=False,
+                    allow_agent=False,
+                    timeout=8,
+                    **extra_kwargs,
+                )
+                client.close()
+                return True, f"Connected to {host} successfully [{label}]."
+            except Exception as exc:
+                errors.append(f"{label}: {exc}")
+            finally:
+                client.close()
+    finally:
+        paramiko_log.removeHandler(log_handler)
+        paramiko_log.setLevel(original_level)
 
-    return False, " | ".join(errors)
+    # Extract auth-relevant log lines to include in the error message.
+    auth_lines = [
+        line for line in log_stream.getvalue().splitlines()
+        if any(kw in line.lower() for kw in ("userauth", "auth", "pubkey", "allowed", "banner", "service"))
+    ]
+    debug_snippet = " // ".join(auth_lines[-12:]) if auth_lines else ""
+
+    summary = " | ".join(errors)
+    if debug_snippet:
+        summary += f"\n\nSSH debug: {debug_snippet}"
+    return False, summary
 
 
 def run_backup_sync(app) -> None:
