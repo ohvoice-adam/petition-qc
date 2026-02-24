@@ -164,11 +164,11 @@ def _load_pkey(key_content: str):
 
 
 def _make_ssh_client(scp_config: dict, timeout: int):
-    """Return a connected paramiko SSHClient.
+    """Return a connected paramiko SSHClient using the stored private key.
 
-    Disables the legacy ssh-rsa (SHA-1) algorithm so that modern OpenSSH
-    servers (8.8+, which reject SHA-1 by default) accept the connection.
-    rsa-sha2-256 and rsa-sha2-512 are tried automatically instead.
+    Lets paramiko negotiate the pubkey algorithm freely (tries rsa-sha2-512,
+    rsa-sha2-256, then ssh-rsa in order) so it works with both modern and
+    legacy SSH servers.
     """
     import paramiko
 
@@ -183,7 +183,6 @@ def _make_ssh_client(scp_config: dict, timeout: int):
         look_for_keys=False,
         allow_agent=False,
         timeout=timeout,
-        disabled_algorithms={"pubkeys": ["ssh-rsa"]},
     )
     return client
 
@@ -191,17 +190,27 @@ def _make_ssh_client(scp_config: dict, timeout: int):
 def test_sftp_connection(scp_config: dict, password: str | None = None) -> tuple[bool, str]:
     """Attempt an SSH connection and return (success, message).
 
-    If *password* is supplied it is tried first (useful for debugging when
-    key auth is failing). The password is never stored anywhere.
+    If *password* is supplied, only password auth is tried.
+
+    Otherwise, key auth is attempted three ways to maximise diagnostic value:
+      A) Auto  — let paramiko negotiate (rsa-sha2-512 → rsa-sha2-256 → ssh-rsa)
+      B) SHA-2 — disable legacy ssh-rsa entirely
+      C) SHA-1 — disable rsa-sha2 variants (legacy servers only)
+
+    The first strategy that succeeds is reported.  If all three fail the
+    combined error messages are returned so the caller can see exactly where
+    negotiation is breaking down.
     """
     import paramiko
+
+    host = scp_config["host"]
 
     if password:
         try:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             client.connect(
-                scp_config["host"],
+                host,
                 port=scp_config["port"],
                 username=scp_config["user"],
                 password=password,
@@ -210,16 +219,43 @@ def test_sftp_connection(scp_config: dict, password: str | None = None) -> tuple
                 timeout=8,
             )
             client.close()
-            return True, f"Connected to {scp_config['host']} via password successfully."
+            return True, f"Connected to {host} via password successfully."
         except Exception as exc:
             return False, f"Password auth failed: {exc}"
 
     try:
-        client = _make_ssh_client(scp_config, timeout=8)
-        client.close()
-        return True, f"Connected to {scp_config['host']} successfully."
-    except Exception as exc:
+        pkey = _load_pkey(scp_config["key_content"])
+    except ValueError as exc:
         return False, str(exc)
+
+    strategies = [
+        ("Auto (rsa-sha2-512/256/ssh-rsa)",    {}),
+        ("SHA-2 only (rsa-sha2-512/256)",       {"disabled_algorithms": {"pubkeys": ["ssh-rsa"]}}),
+        ("Legacy SHA-1 only (ssh-rsa)",         {"disabled_algorithms": {"pubkeys": ["rsa-sha2-512", "rsa-sha2-256"]}}),
+    ]
+    errors = []
+    for label, extra_kwargs in strategies:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        try:
+            client.connect(
+                host,
+                port=scp_config["port"],
+                username=scp_config["user"],
+                pkey=pkey,
+                look_for_keys=False,
+                allow_agent=False,
+                timeout=8,
+                **extra_kwargs,
+            )
+            client.close()
+            return True, f"Connected to {host} successfully [{label}]."
+        except Exception as exc:
+            errors.append(f"{label}: {exc}")
+        finally:
+            client.close()
+
+    return False, " | ".join(errors)
 
 
 def run_backup_sync(app) -> None:
