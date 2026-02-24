@@ -1,6 +1,17 @@
 #!/bin/sh
 set -e
 
+echo "Enabling pg_trgm extension..."
+python - <<'EOF'
+import os
+import psycopg2
+url = os.environ["DATABASE_URL"]
+conn = psycopg2.connect(url)
+conn.autocommit = True
+conn.cursor().execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+conn.close()
+EOF
+
 echo "Running database migrations..."
 flask db upgrade
 
