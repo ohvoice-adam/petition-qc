@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: petition
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U petition -d petition_qc"]
       interval: 5s
