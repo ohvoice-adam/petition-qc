@@ -45,9 +45,14 @@ def create_app(config_class=Config):
     with app.app_context():
         from app.models import User, Voter, Signature, Book, Batch, Collector, DataEnterer, Settings, VoterImport
 
-        # Recover imports left in running/pending state from a previous crash
-        from app.services.voter_import import VoterImportService
-        VoterImportService.recover_stale_imports()
+        # Recover imports left in running/pending state from a previous crash.
+        # Wrapped in try/except because this runs during `flask db upgrade`
+        # before migrations have created the voter_imports table.
+        try:
+            from app.services.voter_import import VoterImportService
+            VoterImportService.recover_stale_imports()
+        except Exception:
+            pass
 
     # Start the backup scheduler (reads schedule setting from DB)
     from app.services.scheduler import init_app as init_scheduler
