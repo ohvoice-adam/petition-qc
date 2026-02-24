@@ -68,7 +68,9 @@ def run_backup_async(app) -> None:
 def _backup_thread(app) -> None:
     """Background thread: dump the database and upload via SFTP."""
     with app.app_context():
+        from app import db
         from app.models import Settings
+        from sqlalchemy import text
 
         db_url = os.environ.get("DATABASE_URL") or app.config.get(
             "SQLALCHEMY_DATABASE_URI", ""
@@ -81,9 +83,19 @@ def _backup_thread(app) -> None:
             "remote_path": Settings.get("backup_scp_remote_path"),
         }
 
+        # Determine the PostgreSQL server major version so we can pick the
+        # matching pg_dump binary (avoids "server version mismatch" errors).
+        try:
+            version_num = db.session.execute(
+                text("SHOW server_version_num")
+            ).scalar()
+            server_major = int(version_num) // 10000
+        except Exception:
+            server_major = None
+
         dump_file = None
         try:
-            dump_file = _create_pg_dump(db_url)
+            dump_file = _create_pg_dump(db_url, server_major)
             _sftp_upload(dump_file, scp_config)
             Settings.set("backup_last_status", "success")
         except Exception as exc:
@@ -98,19 +110,45 @@ def _backup_thread(app) -> None:
                     pass
 
 
-def _create_pg_dump(db_url: str) -> str:
+def _find_pg_dump(server_major: int | None) -> str:
+    """Return the path to a pg_dump binary matching *server_major*.
+
+    On Debian/Ubuntu, versioned binaries live at
+    /usr/lib/postgresql/{version}/bin/pg_dump.  Falls back to whatever
+    'pg_dump' resolves to in PATH if no versioned binary is found.
+    """
+    import shutil
+
+    if server_major:
+        versioned = f"/usr/lib/postgresql/{server_major}/bin/pg_dump"
+        if os.path.isfile(versioned) and os.access(versioned, os.X_OK):
+            logger.info("Using versioned pg_dump: %s", versioned)
+            return versioned
+        logger.warning(
+            "pg_dump for PostgreSQL %s not found at %s; "
+            "falling back to default. Install with: "
+            "sudo apt install postgresql-client-%s",
+            server_major, versioned, server_major,
+        )
+
+    default = shutil.which("pg_dump") or "pg_dump"
+    return default
+
+
+def _create_pg_dump(db_url: str, server_major: int | None = None) -> str:
     """Run pg_dump for BACKUP_TABLES only and return the path to the dump file."""
     # Strip SQLAlchemy driver prefixes (e.g. postgresql+psycopg2://)
     clean_url = db_url.replace("+psycopg2", "").replace("+pg8000", "")
+
+    pg_dump = _find_pg_dump(server_major)
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     fd, dump_path = tempfile.mkstemp(suffix=f"-petition-qc-{timestamp}.dump")
     os.close(fd)
 
     # Pass the full URI via --dbname so pg_dump receives the password and all
-    # connection parameters exactly as SQLAlchemy uses them, avoiding the need
-    # to set PGPASSWORD separately.
-    cmd = ["pg_dump", "--format=custom", "--dbname", clean_url]
+    # connection parameters exactly as SQLAlchemy uses them.
+    cmd = [pg_dump, "--format=custom", "--dbname", clean_url]
     for table in BACKUP_TABLES:
         cmd.extend(["--table", table])
 
@@ -119,9 +157,15 @@ def _create_pg_dump(db_url: str) -> str:
 
     if result.returncode != 0:
         os.unlink(dump_path)
+        stderr = result.stderr.decode().strip()
+        # Provide an actionable message when the version mismatch is the cause.
+        if "server version mismatch" in stderr and server_major:
+            raise RuntimeError(
+                f"pg_dump version mismatch (server is PostgreSQL {server_major}). "
+                f"Install the matching client: sudo apt install postgresql-client-{server_major}"
+            )
         raise RuntimeError(
-            f"pg_dump exited with code {result.returncode}: "
-            f"{result.stderr.decode().strip()}"
+            f"pg_dump exited with code {result.returncode}: {stderr}"
         )
 
     return dump_path
