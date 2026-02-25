@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 
 from app import db
 from app.models import User, UserRole, Organization, admin_required
+from app.utils import is_valid_email
 
 bp = Blueprint("users", __name__)
 
@@ -24,13 +25,17 @@ def new():
     organizations = Organization.query.order_by(Organization.name).all()
 
     if request.method == "POST":
-        email = request.form.get("email")
+        email = request.form.get("email", "").strip()
         password = request.form.get("password")
         first_name = request.form.get("first_name")
         last_name = request.form.get("last_name")
         role = request.form.get("role", UserRole.ENTERER)
         org_id = request.form.get("organization_id")
         organization_id = int(org_id) if org_id else None
+
+        if not is_valid_email(email):
+            flash("Invalid email address.", "error")
+            return render_template("users/new.html", roles=UserRole.CHOICES, organizations=organizations)
 
         if User.query.filter_by(email=email).first():
             flash("Email already registered", "error")
@@ -67,7 +72,12 @@ def edit(id):
         return redirect(url_for("users.index"))
 
     if request.method == "POST":
-        user.email = request.form.get("email")
+        email = request.form.get("email", "").strip()
+        if not is_valid_email(email):
+            flash("Invalid email address.", "error")
+            return render_template("users/edit.html", user=user, roles=UserRole.CHOICES, organizations=organizations)
+
+        user.email = email
         user.first_name = request.form.get("first_name")
         user.last_name = request.form.get("last_name")
         user.role = request.form.get("role", UserRole.ENTERER)

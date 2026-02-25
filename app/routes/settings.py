@@ -7,6 +7,7 @@ from app.models import Settings, admin_required
 from app.services import backup as backup_service
 from app.services import scheduler as scheduler_service
 from app.services import email as email_service
+from app.utils import is_valid_email
 
 bp = Blueprint("settings", __name__)
 
@@ -129,11 +130,16 @@ def run_backup():
 @admin_required
 def save_smtp_config():
     """Save SMTP email configuration."""
+    from_email = request.form.get("smtp_from_email", "").strip()
+    if from_email and not is_valid_email(from_email):
+        flash("Invalid From Address email.", "error")
+        return redirect(url_for("settings.index"))
+
     Settings.save_smtp_config(
         host=request.form.get("smtp_host", ""),
         port=request.form.get("smtp_port", "587"),
         user=request.form.get("smtp_user", ""),
-        from_email=request.form.get("smtp_from_email", ""),
+        from_email=from_email,
         use_tls=bool(request.form.get("smtp_use_tls")),
         password=request.form.get("smtp_password") or None,
     )

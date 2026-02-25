@@ -3,6 +3,7 @@ from flask_login import login_required
 
 from app import db
 from app.models import Collector, DataEnterer, Organization
+from app.utils import is_valid_email, is_valid_phone
 
 bp = Blueprint("collectors", __name__)
 
@@ -22,12 +23,22 @@ def new():
     organizations = Organization.query.order_by(Organization.name).all()
 
     if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
         org_id = request.form.get("organization_id")
+
+        if email and not is_valid_email(email):
+            flash("Invalid email address.", "error")
+            return render_template("collectors/new.html", organizations=organizations)
+        if not is_valid_phone(phone):
+            flash("Invalid phone number.", "error")
+            return render_template("collectors/new.html", organizations=organizations)
+
         collector = Collector(
             first_name=request.form.get("first_name"),
             last_name=request.form.get("last_name"),
-            phone=request.form.get("phone"),
-            email=request.form.get("email"),
+            phone=phone or None,
+            email=email or None,
             organization_id=int(org_id) if org_id else None,
         )
         db.session.add(collector)
@@ -51,11 +62,21 @@ def edit(id):
         return redirect(url_for("collectors.index"))
 
     if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
         org_id = request.form.get("organization_id")
+
+        if email and not is_valid_email(email):
+            flash("Invalid email address.", "error")
+            return render_template("collectors/edit.html", collector=collector, organizations=organizations)
+        if not is_valid_phone(phone):
+            flash("Invalid phone number.", "error")
+            return render_template("collectors/edit.html", collector=collector, organizations=organizations)
+
         collector.first_name = request.form.get("first_name")
         collector.last_name = request.form.get("last_name")
-        collector.phone = request.form.get("phone")
-        collector.email = request.form.get("email")
+        collector.phone = phone or None
+        collector.email = email or None
         collector.organization_id = int(org_id) if org_id else None
         db.session.commit()
 
@@ -79,11 +100,21 @@ def enterers():
 def new_enterer():
     """Create a new data enterer."""
     if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        phone = request.form.get("phone", "").strip()
+
+        if email and not is_valid_email(email):
+            flash("Invalid email address.", "error")
+            return render_template("collectors/new_enterer.html")
+        if not is_valid_phone(phone):
+            flash("Invalid phone number.", "error")
+            return render_template("collectors/new_enterer.html")
+
         enterer = DataEnterer(
             first_name=request.form.get("first_name"),
             last_name=request.form.get("last_name"),
-            phone=request.form.get("phone"),
-            email=request.form.get("email"),
+            phone=phone or None,
+            email=email or None,
         )
         db.session.add(enterer)
         db.session.commit()
