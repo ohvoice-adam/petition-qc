@@ -143,6 +143,66 @@ class StatsService:
         ]
 
     @staticmethod
+    def get_book_stats(sort: str = "book_number", direction: str = "desc") -> list[dict]:
+        """Get per-book signature counts and validity rates.
+
+        sort: 'book_number' | 'entry_time'
+        direction: 'asc' | 'desc'
+        """
+        # Build ORDER BY safely from a whitelist
+        dir_sql = "DESC" if direction != "asc" else "ASC"
+        nulls = "NULLS LAST" if dir_sql == "DESC" else "NULLS FIRST"
+
+        if sort == "entry_time":
+            order_clause = f"first_entry_at {dir_sql} {nulls}"
+        else:
+            # Numeric sort for all-digit book numbers, string fallback
+            order_clause = (
+                f"CASE WHEN b.book_number ~ '^\\d+$' THEN b.book_number::integer ELSE NULL END "
+                f"{dir_sql} NULLS LAST, b.book_number {dir_sql}"
+            )
+
+        sql = text(f"""
+            SELECT
+                b.id,
+                b.book_number,
+                COALESCE(c.first_name || ' ' || c.last_name, 'Unknown') AS collector_name,
+                b.date_out,
+                b.date_back,
+                MIN(bat.created_at) AS first_entry_at,
+                COUNT(s.id) AS total_signatures,
+                SUM(CASE WHEN s.matched IS TRUE THEN 1 ELSE 0 END) AS matched_count,
+                ROUND(
+                    SUM(CASE WHEN s.matched IS TRUE THEN 1 ELSE 0 END)
+                    * 100.0 / NULLIF(COUNT(s.id), 0),
+                    1
+                ) AS validity_rate
+            FROM books b
+            LEFT JOIN collectors c ON b.collector_id = c.id
+            LEFT JOIN signatures s ON s.book_id = b.id
+            LEFT JOIN batches bat ON bat.book_id = b.id
+            GROUP BY b.id, b.book_number, collector_name, b.date_out, b.date_back
+            ORDER BY {order_clause}
+        """)  # nosec — order_clause built from whitelist only
+
+        rows = db.session.execute(sql).fetchall()
+
+        return [
+            {
+                "id": row.id,
+                "book_number": row.book_number,
+                "collector_name": row.collector_name,
+                "date_out": row.date_out,
+                "date_back": row.date_back,
+                "first_entry_at": row.first_entry_at,
+                "total_signatures": row.total_signatures or 0,
+                "matched_count": int(row.matched_count or 0),
+                "validity_rate": float(row.validity_rate or 0),
+            }
+            for row in rows
+        ]
+
+    @staticmethod
     def get_organization_stats() -> list[dict]:
         """Get statistics per organization."""
         city_info = StatsService.get_target_city_info()

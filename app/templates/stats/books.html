@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Book Stats - Petition QC{% endblock %}
+
+{% macro sort_link(col, label) %}
+{% set active = sort == col %}
+{% set next_dir = 'asc' if (active and direction == 'desc') else 'desc' %}
+<a href="{{ url_for('stats.books', sort=col, dir=next_dir) }}"
+   class="inline-flex items-center gap-1 group {% if active %}text-gray-900 dark:text-white{% else %}text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200{% endif %}">
+    {{ label }}
+    {% if active %}
+        {% if direction == 'asc' %}
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/>
+        </svg>
+        {% else %}
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+        {% endif %}
+    {% else %}
+    <svg class="w-3.5 h-3.5 opacity-0 group-hover:opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+    </svg>
+    {% endif %}
+</a>
+{% endmacro %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Books</h1>
+        <a href="{{ url_for('stats.index') }}" class="text-navy-600 dark:text-navy-400 hover:text-navy-800 dark:hover:text-navy-300">
+            &larr; Back to Stats
+        </a>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
+                        {{ sort_link('book_number', 'Book #') }}
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Collector
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Date Out / Back
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">
+                        {{ sort_link('entry_time', 'First Entry') }}
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Signatures
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Matched
+                    </th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Validity
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for book in books %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-3 whitespace-nowrap font-medium">
+                        {{ book.book_number }}
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                        {{ book.collector_name }}
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {% if book.date_out %}{{ book.date_out.strftime('%m/%d/%y') }}{% else %}—{% endif %}
+                        /
+                        {% if book.date_back %}{{ book.date_back.strftime('%m/%d/%y') }}{% else %}—{% endif %}
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">
+                        {% if book.first_entry_at %}
+                            {{ book.first_entry_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-right font-medium">
+                        {{ "{:,}".format(book.total_signatures) }}
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-right text-green-700 dark:text-green-400 font-medium">
+                        {{ "{:,}".format(book.matched_count) }}
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-right">
+                        {% if book.total_signatures > 0 %}
+                        <span class="font-medium
+                            {% if book.validity_rate >= 75 %}text-green-700 dark:text-green-400
+                            {% elif book.validity_rate >= 50 %}text-yellow-600 dark:text-yellow-400
+                            {% else %}text-red-600 dark:text-red-400{% endif %}">
+                            {{ book.validity_rate }}%
+                        </span>
+                        {% else %}
+                        <span class="text-gray-400">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                        No books have been entered yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if books %}
+        <div class="px-6 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+            {{ books|length }} book{% if books|length != 1 %}s{% endif %} &mdash;
+            {{ "{:,}".format(books|sum(attribute='total_signatures')) }} total signatures &mdash;
+            {{ "{:,}".format(books|sum(attribute='matched_count')) }} matched
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

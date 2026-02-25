@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 from flask_login import login_required
 
 from app.models import Settings
@@ -30,3 +30,24 @@ def organizations():
     """Organization performance statistics."""
     org_stats = StatsService.get_organization_stats()
     return render_template("stats/organizations.html", stats=org_stats)
+
+
+@bp.route("/books")
+@login_required
+def books():
+    """Per-book signature counts and validity rates."""
+    sort = request.args.get("sort", "book_number")
+    if sort not in ("book_number", "entry_time"):
+        sort = "book_number"
+
+    direction = request.args.get("dir", "desc")
+    if direction not in ("asc", "desc"):
+        direction = "desc"
+
+    book_stats = StatsService.get_book_stats(sort=sort, direction=direction)
+    return render_template(
+        "stats/books.html",
+        books=book_stats,
+        sort=sort,
+        direction=direction,
+    )
