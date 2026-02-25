@@ -6,6 +6,7 @@ from app import db
 from app.models import Settings, admin_required
 from app.services import backup as backup_service
 from app.services import scheduler as scheduler_service
+from app.services import email as email_service
 
 bp = Blueprint("settings", __name__)
 
@@ -38,6 +39,8 @@ def index():
     cities = get_distinct_cities()
     backup_config = Settings.get_backup_config()
     backup_configured = backup_service.is_configured()
+    smtp_config = Settings.get_smtp_config()
+    smtp_configured = email_service.is_configured()
 
     return render_template(
         "settings/index.html",
@@ -46,6 +49,8 @@ def index():
         signature_goal=signature_goal,
         backup_config=backup_config,
         backup_configured=backup_configured,
+        smtp_config=smtp_config,
+        smtp_configured=smtp_configured,
     )
 
 
@@ -117,6 +122,45 @@ def run_backup():
     except ValueError as exc:
         flash(str(exc), "error")
     return redirect(url_for("settings.index"))
+
+
+@bp.route("/save-smtp-config", methods=["POST"])
+@login_required
+@admin_required
+def save_smtp_config():
+    """Save SMTP email configuration."""
+    Settings.save_smtp_config(
+        host=request.form.get("smtp_host", ""),
+        port=request.form.get("smtp_port", "587"),
+        user=request.form.get("smtp_user", ""),
+        from_email=request.form.get("smtp_from_email", ""),
+        use_tls=bool(request.form.get("smtp_use_tls")),
+        password=request.form.get("smtp_password") or None,
+    )
+    flash("Email configuration saved", "success")
+    return redirect(url_for("settings.index"))
+
+
+@bp.route("/test-smtp", methods=["POST"])
+@login_required
+@admin_required
+def test_smtp():
+    """Send a test email and return JSON {ok, message}."""
+    from flask_login import current_user
+
+    try:
+        if not email_service.is_configured():
+            return jsonify(ok=False, message="Email is not fully configured.")
+        email_service.send_email(
+            to=current_user.email,
+            subject="Petition QC — SMTP Test",
+            body_html="<p>SMTP is configured correctly.</p>",
+            body_text="SMTP is configured correctly.",
+        )
+        return jsonify(ok=True, message=f"Test email sent to {current_user.email}.")
+    except Exception as exc:
+        current_app.logger.exception("SMTP test failed")
+        return jsonify(ok=False, message=f"Error: {exc}"), 500
 
 
 def get_distinct_cities() -> list[dict]:

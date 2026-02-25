@@ -119,5 +119,32 @@ class Settings(db.Model):
         if key_content is not None:
             cls.set("backup_scp_key_content", key_content)
 
+    # ------------------------------------------------------------------
+    # SMTP / email settings
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def get_smtp_config(cls) -> dict:
+        """Return all SMTP-related settings as a dict."""
+        return {
+            "host": cls.get("smtp_host", ""),
+            "port": cls.get("smtp_port", "587"),
+            "user": cls.get("smtp_user", ""),
+            "from_email": cls.get("smtp_from_email", ""),
+            "use_tls": cls.get("smtp_use_tls", "true"),
+            "has_password": bool(cls.get("smtp_password")),
+        }
+
+    @classmethod
+    def save_smtp_config(cls, host, port, user, from_email, use_tls, password=None):
+        """Persist SMTP configuration. Password is only overwritten if provided."""
+        cls.set("smtp_host", host.strip())
+        cls.set("smtp_port", port.strip() or "587")
+        cls.set("smtp_user", user.strip())
+        cls.set("smtp_from_email", from_email.strip())
+        cls.set("smtp_use_tls", "true" if use_tls else "false")
+        if password:
+            cls.set("smtp_password", password)
+
     def __repr__(self):
         return f"<Settings {self.key}={self.value}>"

@@ -29,6 +29,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), default=UserRole.ENTERER, nullable=False)
     organization_id = db.Column(db.Integer, db.ForeignKey("organizations.id"), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
+    must_change_password = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     # Relationships

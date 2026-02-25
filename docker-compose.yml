@@ -24,6 +24,8 @@ services:
       DATABASE_URL: postgresql://petition:${POSTGRES_PASSWORD}@db:5432/petition_qc
       SECRET_KEY: ${SECRET_KEY}
       UPLOAD_FOLDER: /app/uploads
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - uploads:/app/uploads
 

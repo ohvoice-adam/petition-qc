@@ -41,6 +41,19 @@ def create_app(config_class=Config):
     app.register_blueprint(organizations_bp, url_prefix="/organizations")
     app.register_blueprint(imports_bp, url_prefix="/imports")
 
+    @app.before_request
+    def enforce_password_change():
+        from flask import request, redirect, url_for
+        from flask_login import current_user
+        if not current_user.is_authenticated:
+            return
+        if request.endpoint and (
+            request.endpoint.startswith("auth.") or request.endpoint == "static"
+        ):
+            return
+        if current_user.must_change_password:
+            return redirect(url_for("auth.change_password"))
+
     # Runtime startup tasks (run after migrations have been applied)
     with app.app_context():
         from app.models import User, Voter, Signature, Book, Batch, Collector, DataEnterer, Settings, VoterImport

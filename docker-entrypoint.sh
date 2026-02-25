@@ -42,6 +42,33 @@ else
     flask db upgrade
 fi
 
+echo "Seeding default admin user..."
+python - <<'PYEOF'
+import os, secrets, string
+from app import create_app, db
+from app.models import User
+from app.models.user import UserRole
+
+app = create_app()
+with app.app_context():
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@example.com")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "")
+
+    if not User.query.filter_by(email=admin_email).first():
+        if not admin_password:
+            alphabet = string.ascii_letters + string.digits + "!@#$%"
+            admin_password = "".join(secrets.choice(alphabet) for _ in range(20))
+            print(f"[IMPORTANT] Generated admin password: {admin_password}", flush=True)
+        user = User(email=admin_email, first_name="Admin", last_name="User",
+                    role=UserRole.ADMIN, must_change_password=True)
+        user.set_password(admin_password)
+        db.session.add(user)
+        db.session.commit()
+        print(f"[INFO] Admin user created: {admin_email}", flush=True)
+    else:
+        print(f"[INFO] Admin user already exists: {admin_email} — skipping.", flush=True)
+PYEOF
+
 echo "Starting Gunicorn..."
 exec gunicorn \
     --workers 4 \

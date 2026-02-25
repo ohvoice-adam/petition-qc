@@ -25,6 +25,12 @@
         </button>
     </form>
 
+    <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
+        <a href="{{ url_for('auth.forgot_password') }}" class="text-navy-400 hover:text-navy-300">
+            Forgot your password?
+        </a>
+    </p>
+
     <p class="mt-4 text-center text-gray-400">
         Don't have an account?
         <a href="{{ url_for('auth.register') }}" class="text-navy-400 hover:text-navy-300">Register</a>
