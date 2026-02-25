@@ -45,10 +45,23 @@
             </div>
 
             <div class="flex justify-end">
-                <button type="submit"
+                <button type="submit" id="upload-btn"
                         class="bg-accent-500 hover:bg-accent-600 text-white font-medium py-2 px-4 rounded-md">
                     Upload and Import
                 </button>
+            </div>
+
+            <!-- Upload progress (hidden until upload starts) -->
+            <div id="upload-progress" class="hidden mt-4 space-y-2">
+                <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                    <span id="upload-label">Uploading…</span>
+                    <span id="upload-percent">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                    <div id="upload-bar"
+                         class="bg-accent-500 h-2.5 rounded-full transition-all duration-150"
+                         style="width: 0%"></div>
+                </div>
             </div>
         </form>
 
@@ -206,6 +219,69 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Upload progress script -->
+<script>
+(function() {
+    const form = document.querySelector('form[action="{{ url_for("imports.upload") }}"]');
+    if (!form) return;
+
+    const btn = document.getElementById('upload-btn');
+    const progressWrapper = document.getElementById('upload-progress');
+    const bar = document.getElementById('upload-bar');
+    const label = document.getElementById('upload-label');
+    const pct = document.getElementById('upload-percent');
+
+    function formatBytes(bytes) {
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const data = new FormData(form);
+
+        btn.disabled = true;
+        btn.textContent = 'Uploading…';
+        progressWrapper.classList.remove('hidden');
+        bar.style.width = '0%';
+        pct.textContent = '0%';
+        label.textContent = 'Uploading…';
+
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener('progress', function(ev) {
+            if (!ev.lengthComputable) return;
+            const percent = Math.round((ev.loaded / ev.total) * 100);
+            bar.style.width = percent + '%';
+            pct.textContent = percent + '%';
+            label.textContent = 'Uploading — ' + formatBytes(ev.loaded) + ' of ' + formatBytes(ev.total);
+        });
+
+        xhr.upload.addEventListener('load', function() {
+            bar.style.width = '100%';
+            pct.textContent = '100%';
+            label.textContent = 'Upload complete — processing…';
+        });
+
+        xhr.addEventListener('load', function() {
+            // Follow the redirect the server sends after upload
+            window.location.href = xhr.responseURL || '{{ url_for("imports.index") }}';
+        });
+
+        xhr.addEventListener('error', function() {
+            label.textContent = 'Upload failed — please try again.';
+            bar.classList.replace('bg-accent-500', 'bg-red-500');
+            btn.disabled = false;
+            btn.textContent = 'Upload and Import';
+        });
+
+        xhr.open('POST', form.action);
+        xhr.send(data);
+    });
+})();
+</script>
 
 <!-- Progress polling script -->
 <script>
