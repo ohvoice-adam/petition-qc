@@ -44,7 +44,7 @@ fi
 
 echo "Seeding default admin user..."
 python - <<'PYEOF'
-import os, secrets, string
+import os
 from app import create_app, db
 from app.models import User
 from app.models.user import UserRole
@@ -56,9 +56,7 @@ with app.app_context():
 
     if not User.query.filter_by(email=admin_email).first():
         if not admin_password:
-            alphabet = string.ascii_letters + string.digits + "!@#$%"
-            admin_password = "".join(secrets.choice(alphabet) for _ in range(20))
-            print(f"[IMPORTANT] Generated admin password: {admin_password}", flush=True)
+            admin_password = "changeme"
         user = User(email=admin_email, first_name="Admin", last_name="User",
                     role=UserRole.ADMIN, must_change_password=True)
         user.set_password(admin_password)
