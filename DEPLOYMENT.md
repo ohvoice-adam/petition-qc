@@ -39,20 +39,54 @@ docker compose up -d
 
 The app will be available at `https://your-domain.com` within a minute or two (Caddy provisions the certificate automatically).
 
+### Default Admin Account
+
+On first startup, the entrypoint automatically creates an admin user:
+
+| Field | Default |
+|-------|---------|
+| Email | `admin@example.com` (override with `ADMIN_EMAIL` in `.env`) |
+| Password | `changeme` |
+
+You will be forced to set a new password on first login. To use a different email or pre-set a password, add to your `.env` before the first `docker compose up`:
+
+```env
+ADMIN_EMAIL=you@example.com
+ADMIN_PASSWORD=your-initial-password
+```
+
+If the user already exists (subsequent startups), the seeding step is skipped.
+
 ### Managing the Deployment
 
 ```bash
 # View logs
-docker compose logs -f
+docker compose logs -f web
 
-# Stop
+# Stop everything
 docker compose down
 
-# Deploy an update
+# Deploy an update (rebuilds only the web container — db and caddy are untouched)
 git pull
-docker compose build
-docker compose up -d
+docker compose build web
+docker compose up -d --no-deps web
+
+# Confirm the update applied
+docker compose logs web --tail=50
 ```
+
+`--no-deps` prevents Docker from restarting `db` and `caddy`. The entrypoint runs
+`flask db upgrade` automatically before Gunicorn starts, so migrations apply on every deploy.
+
+### Reloading Caddy
+
+If you change the `Caddyfile`, reload Caddy's config without dropping connections:
+
+```bash
+docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+```
+
+A full restart (`docker compose restart caddy`) is only needed if Caddy itself is updated.
 
 ### Backups
 
