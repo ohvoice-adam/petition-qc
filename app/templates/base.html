@@ -148,8 +148,14 @@
     {% endwith %}
 
     <!-- Main content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 {% if config.DEBUG %}pb-10{% endif %}">
         {% block content %}{% endblock %}
     </main>
+
+    {% if config.DEBUG %}
+    <div class="fixed bottom-0 inset-x-0 h-6 bg-red-600 flex items-center justify-center z-50 select-none pointer-events-none">
+        <span class="text-white text-xs font-bold tracking-widest uppercase">Development Mode</span>
+    </div>
+    {% endif %}
 </body>
 </html>
