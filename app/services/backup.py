@@ -187,7 +187,6 @@ def _load_pkey(key_content: str):
         paramiko.RSAKey,
         paramiko.Ed25519Key,
         paramiko.ECDSAKey,
-        paramiko.DSSKey,
     ):
         try:
             return key_class.from_private_key(io.StringIO(key_content))
@@ -195,7 +194,7 @@ def _load_pkey(key_content: str):
             continue
     raise ValueError(
         "Could not load the private key — unsupported format or corrupted file. "
-        "Supported types: RSA, Ed25519, ECDSA, DSA."
+        "Supported types: RSA, Ed25519, ECDSA."
     )
 
 
