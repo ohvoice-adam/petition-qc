@@ -37,7 +37,7 @@
     {% set goal_percent_capped = [goal_percent, 100]|min %}
     <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
         <div class="flex items-center justify-between mb-2">
-            <h2 class="text-xl font-semibold">Progress to Goal</h2>
+            <h2 class="text-xl font-semibold">Progress to Goal <span class="text-sm font-normal text-gray-500 dark:text-gray-400">(unique signatures)</span></h2>
             <span class="text-sm text-gray-500 dark:text-gray-400">
                 {{ "{:,}".format(verified_count) }} / {{ "{:,}".format(signature_goal) }} unique signatures
             </span>
