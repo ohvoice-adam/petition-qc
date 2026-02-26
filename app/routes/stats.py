@@ -1,6 +1,12 @@
-from flask import Blueprint, render_template, request
-from flask_login import login_required
+import csv
+import io
+from datetime import date
 
+from flask import Blueprint, render_template, request, Response
+from flask_login import login_required
+from sqlalchemy import text
+
+from app import db
 from app.models import Settings
 from app.services import StatsService
 
@@ -30,6 +36,74 @@ def organizations():
     """Organization performance statistics."""
     org_stats = StatsService.get_organization_stats()
     return render_template("stats/organizations.html", stats=org_stats)
+
+
+@bp.route("/export-matched.csv")
+@login_required
+def export_matched_csv():
+    """Download matched signatures as a CSV including sos_voterid and voter names."""
+    rows = db.session.execute(text("""
+        SELECT
+            s.sos_voterid,
+            v.first_name,
+            v.last_name,
+            s.residential_address1,
+            s.residential_address2,
+            s.residential_city,
+            s.residential_state,
+            s.residential_zip,
+            s.registered_city,
+            b.book_number,
+            c.first_name  AS collector_first,
+            c.last_name   AS collector_last,
+            s.created_at
+        FROM signatures s
+        LEFT JOIN voters     v ON v.sos_voterid = s.sos_voterid
+        LEFT JOIN books      b ON b.id = s.book_id
+        LEFT JOIN collectors c ON c.id = b.collector_id
+        WHERE s.matched = TRUE
+        ORDER BY b.book_number, s.id
+    """)).fetchall()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "sos_voterid",
+        "first_name",
+        "last_name",
+        "address1",
+        "address2",
+        "city",
+        "state",
+        "zip",
+        "registered_city",
+        "book_number",
+        "collector",
+        "date_entered",
+    ])
+    for r in rows:
+        collector = " ".join(filter(None, [r.collector_first, r.collector_last]))
+        writer.writerow([
+            r.sos_voterid or "",
+            r.first_name or "",
+            r.last_name or "",
+            r.residential_address1 or "",
+            r.residential_address2 or "",
+            r.residential_city or "",
+            r.residential_state or "",
+            r.residential_zip or "",
+            r.registered_city or "",
+            r.book_number or "",
+            collector,
+            r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "",
+        ])
+
+    filename = f"matched-signatures-{date.today()}.csv"
+    return Response(
+        buf.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @bp.route("/books")
