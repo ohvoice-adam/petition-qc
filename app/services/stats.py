@@ -64,6 +64,14 @@ class StatsService:
                     case when residential_zip is null
                     or residential_zip = '' then 1 else 0 end
                 ) as unmatched,
+                (
+                    SELECT count(distinct sos_voterid)
+                    FROM signatures
+                    WHERE matched = true
+                    AND registered_city like :city_pattern
+                    AND sos_voterid is not null
+                    AND sos_voterid <> ''
+                ) as unique_matched_target,
                 round(
                     (
                         sum(
@@ -104,6 +112,7 @@ class StatsService:
                 "address_only_target": 0,
                 "address_only_other": 0,
                 "unmatched": 0,
+                "unique_matched_target": 0,
                 "percent_verified": 0,
                 "percent_target": 0,
                 "target_city": city_info["display"],
@@ -116,6 +125,7 @@ class StatsService:
             "address_only_target": result.address_only_target or 0,
             "address_only_other": result.address_only_other or 0,
             "unmatched": result.unmatched or 0,
+            "unique_matched_target": result.unique_matched_target or 0,
             "percent_verified": result.percent_verified or 0,
             "percent_target": result.percent_target or 0,
             "target_city": city_info["display"],

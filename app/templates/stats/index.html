@@ -32,14 +32,14 @@
 
     <!-- Progress to Goal -->
     {% if signature_goal > 0 %}
-    {% set verified_count = progress.matched_target %}
+    {% set verified_count = progress.unique_matched_target %}
     {% set goal_percent = (verified_count * 100 / signature_goal)|round(1) if signature_goal else 0 %}
     {% set goal_percent_capped = [goal_percent, 100]|min %}
     <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
         <div class="flex items-center justify-between mb-2">
             <h2 class="text-xl font-semibold">Progress to Goal</h2>
             <span class="text-sm text-gray-500 dark:text-gray-400">
-                {{ "{:,}".format(verified_count) }} / {{ "{:,}".format(signature_goal) }} verified signatures
+                {{ "{:,}".format(verified_count) }} / {{ "{:,}".format(signature_goal) }} unique signatures
             </span>
         </div>
         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-8 overflow-hidden relative">
@@ -57,17 +57,21 @@
         </div>
         {% else %}
         <div class="mt-2 text-gray-500 dark:text-gray-400 text-sm text-center">
-            {{ "{:,}".format(signature_goal - verified_count) }} more verified signatures needed
+            {{ "{:,}".format(signature_goal - verified_count) }} more unique signatures needed
         </div>
         {% endif %}
     </div>
     {% endif %}
 
     <!-- Summary cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
             <div class="text-3xl font-bold text-gray-900 dark:text-white">{{ progress.entered }}</div>
             <div class="text-gray-500 dark:text-gray-400 text-sm">Total Entered</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+            <div class="text-3xl font-bold text-green-600 dark:text-green-400">{{ "{:,}".format(progress.unique_matched_target) }}</div>
+            <div class="text-gray-500 dark:text-gray-400 text-sm">Unique Signatures</div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
             <div class="text-3xl font-bold text-green-600 dark:text-green-400">{{ progress.percent_verified }}%</div>
