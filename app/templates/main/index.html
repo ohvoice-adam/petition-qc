@@ -8,10 +8,10 @@
 
     {% if book_id and batch_id %}
     <!-- Active session -->
-    <div class="bg-gray-800 rounded-lg p-6 mb-6">
-        <h2 class="text-xl font-semibold mb-4 text-green-400">Active Session</h2>
-        <p class="text-gray-300 mb-4">
-            Book: <span class="font-bold text-white">{{ book_number }}</span>
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4 text-green-600 dark:text-green-400">Active Session</h2>
+        <p class="text-gray-600 dark:text-gray-300 mb-4">
+            Book: <span class="font-bold text-gray-900 dark:text-white">{{ book_number }}</span>
         </p>
         <div class="flex space-x-4">
             <a href="{{ url_for('signatures.entry') }}"
@@ -29,15 +29,15 @@
     {% endif %}
 
     <!-- Start new session -->
-    <div class="bg-gray-800 rounded-lg p-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4">Start New Session</h2>
 
         <form method="POST" action="{{ url_for('main.start_session') }}" id="session-form" class="space-y-4">
             <input type="hidden" name="override" id="override" value="">
             <div>
-                <label for="book_number" class="block text-sm font-medium text-gray-300">Book Number</label>
+                <label for="book_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Book Number</label>
                 <input type="text" name="book_number" id="book_number" required
-                       class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500"
+                       class="mt-1 block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500"
                        placeholder="Enter book number">
                 <div id="book-warning" class="hidden mt-2 p-3 bg-yellow-900/50 border border-yellow-600 rounded-md text-yellow-200 text-sm">
                     <strong>Warning:</strong> Book <span id="existing-book-number"></span> already exists (Collector: <span id="existing-collector"></span>).
@@ -45,9 +45,9 @@
             </div>
 
             <div>
-                <label for="collector_id" class="block text-sm font-medium text-gray-300">Collector</label>
+                <label for="collector_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Collector</label>
                 <select name="collector_id" id="collector_id" required
-                        class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
+                        class="mt-1 block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
                     <option value="">Select a collector...</option>
                     {% for collector in collectors %}
                     <option value="{{ collector.id }}">{{ collector.display_name }}</option>
@@ -57,16 +57,16 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label for="date_out" class="block text-sm font-medium text-gray-300">Date Out</label>
+                    <label for="date_out" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date Out</label>
                     <input type="date" name="date_out" id="date_out"
                            value="{{ today }}"
-                           class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
+                           class="mt-1 block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
                 </div>
                 <div>
-                    <label for="date_back" class="block text-sm font-medium text-gray-300">Date In</label>
+                    <label for="date_back" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date In</label>
                     <input type="date" name="date_back" id="date_back"
                            value="{{ today }}"
-                           class="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
+                           class="mt-1 block w-full rounded-md bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white px-3 py-2 focus:border-navy-500 focus:ring-navy-500">
                 </div>
             </div>
 
