@@ -71,6 +71,7 @@ def export_matched_csv():
         "sos_voterid",
         "first_name",
         "last_name",
+        "full_address",
         "address1",
         "address2",
         "city",
@@ -83,10 +84,17 @@ def export_matched_csv():
     ])
     for r in rows:
         collector = " ".join(filter(None, [r.collector_first, r.collector_last]))
+        street = " ".join(filter(None, [r.residential_address1, r.residential_address2]))
+        city_state_zip = ", ".join(filter(None, [
+            r.residential_city,
+            " ".join(filter(None, [r.residential_state, r.residential_zip])),
+        ]))
+        full_address = ", ".join(filter(None, [street, city_state_zip]))
         writer.writerow([
             r.sos_voterid or "",
             r.first_name or "",
             r.last_name or "",
+            full_address,
             r.residential_address1 or "",
             r.residential_address2 or "",
             r.residential_city or "",
