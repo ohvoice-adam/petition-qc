@@ -96,7 +96,7 @@ The upload volume (`uploads`) and database volume (`postgres_data`) are Docker n
 
 ## Option B: Manual Linux Server
 
-This guide covers deploying Petition QC on a Linux server (Ubuntu 22.04/24.04 or Debian 12) using Gunicorn behind Nginx with PostgreSQL.
+This guide covers deploying Mandate on a Linux server (Ubuntu 22.04/24.04 or Debian 12) using Gunicorn behind Nginx with PostgreSQL.
 
 ## System Requirements
 
@@ -240,7 +240,7 @@ sudo nano /etc/systemd/system/petition-qc.service
 
 ```ini
 [Unit]
-Description=Petition QC
+Description=Mandate
 After=network.target postgresql.service
 
 [Service]
@@ -356,7 +356,7 @@ sudo -u petition cat /home/petition/.ssh/backup_key.pub
 # Paste this into ~/.ssh/authorized_keys on your backup server
 ```
 
-Then in the Petition QC web UI (Settings page), configure:
+Then in the Mandate web UI (Settings page), configure:
 - **SCP Host**: backup server hostname or IP
 - **SCP Port**: 22 (or your custom SSH port)
 - **SCP User**: username on the backup server

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Petition QC application."""
+"""Run the Mandate application."""
 
 from app import create_app
 

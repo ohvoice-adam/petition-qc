@@ -1,4 +1,4 @@
-# Petition QC
+# Mandate
 
 A Flask web application for petition signature verification. Data entry staff can quickly verify petition signatures against a voter file database using fast address-based search.
 

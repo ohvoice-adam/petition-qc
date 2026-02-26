@@ -159,7 +159,7 @@ def test_smtp():
             return jsonify(ok=False, message="Email is not fully configured.")
         email_service.send_email(
             to=current_user.email,
-            subject="Petition QC — SMTP Test",
+            subject="Mandate — SMTP Test",
             body_html="<p>SMTP is configured correctly.</p>",
             body_text="SMTP is configured correctly.",
         )
