@@ -1,6 +1,6 @@
 # Mandate
 
-A Flask web application for petition signature verification. Data entry staff can quickly verify petition signatures against a voter file database using fast address-based search.
+A Flask web application for validating Ohio election petition signatures, with a focus on municipal election petitions. Data entry staff can quickly verify petition signatures against an Ohio Secretary of State voter file database using fast address-based search.
 
 ## Features
 
@@ -22,15 +22,15 @@ A Flask web application for petition signature verification. Data entry staff ca
 
 - Python 3.10+
 - PostgreSQL 12+ with pg_trgm extension
-- Voter file data (CSV format)
+- Ohio Secretary of State voter file data (CSV format)
 
 ## Installation
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/ohvoice-adam/petition-qc.git
-cd petition-qc
+git clone https://github.com/ohvoice-adam/Mandate.git
+cd Mandate
 ```
 
 ### 2. Create virtual environment
@@ -57,7 +57,7 @@ cp .env.example .env
 Edit `.env` with your settings:
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/petition_qc
+DATABASE_URL=postgresql://user:password@localhost:5432/mandate
 SECRET_KEY=your-secret-key-here
 FLASK_ENV=development
 FLASK_DEBUG=1
@@ -72,10 +72,10 @@ FLASK_DEBUG=1
 
 ```bash
 # Connect to PostgreSQL
-sudo -u postgres createdb petition_qc
+sudo -u postgres createdb mandate
 
 # Enable pg_trgm extension
-sudo -u postgres psql -d petition_qc -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+sudo -u postgres psql -d mandate -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 ```
 
 ### 6. Initialize the application

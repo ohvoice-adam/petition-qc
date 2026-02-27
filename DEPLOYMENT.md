@@ -142,8 +142,8 @@ sudo -u postgres psql
 
 ```sql
 CREATE USER petition_user WITH PASSWORD 'your-strong-password-here';
-CREATE DATABASE petition_qc OWNER petition_user;
-\c petition_qc
+CREATE DATABASE mandate OWNER petition_user;
+\c mandate
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 \q
 ```
@@ -151,7 +151,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 Verify the extension is active:
 
 ```bash
-sudo -u postgres psql -d petition_qc -c "\dx"
+sudo -u postgres psql -d mandate -c "\dx"
 ```
 
 ---
@@ -186,7 +186,7 @@ nano .env
 Set the following (replace all placeholder values):
 
 ```env
-DATABASE_URL=postgresql://petition_user:your-strong-password-here@localhost:5432/petition_qc
+DATABASE_URL=postgresql://petition_user:your-strong-password-here@localhost:5432/mandate
 SECRET_KEY=<generate with: python3 -c "import secrets; print(secrets.token_hex(32))">
 FLASK_ENV=production
 FLASK_DEBUG=0
@@ -366,7 +366,7 @@ Then in the Mandate web UI (Settings page), configure:
 Backups are in PostgreSQL custom format. To restore:
 
 ```bash
-pg_restore -d petition_qc /path/to/backup.dump
+pg_restore -d mandate /path/to/backup.dump
 ```
 
 ### Automated Scheduled Backups
