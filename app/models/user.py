@@ -10,10 +10,12 @@ from app import db, login_manager
 class UserRole:
     """User role constants."""
     ENTERER = "enterer"
+    ORGANIZER = "organizer"
     ADMIN = "admin"
 
     CHOICES = [
         (ENTERER, "Data Enterer"),
+        (ORGANIZER, "Organizer"),
         (ADMIN, "Administrator"),
     ]
 
@@ -50,6 +52,14 @@ class User(UserMixin, db.Model):
         return self.role == UserRole.ADMIN
 
     @property
+    def is_organizer(self):
+        return self.role == UserRole.ORGANIZER
+
+    @property
+    def is_admin_or_organizer(self):
+        return self.role in (UserRole.ADMIN, UserRole.ORGANIZER)
+
+    @property
     def role_display(self):
         for value, label in UserRole.CHOICES:
             if value == self.role:
@@ -67,6 +77,19 @@ def admin_required(f):
         if not current_user.is_authenticated:
             return redirect(url_for("auth.login"))
         if not current_user.is_admin:
+            flash("You don't have permission to access this page.", "error")
+            return redirect(url_for("main.index"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def organizer_required(f):
+    """Decorator to require admin or organizer role for a route."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for("auth.login"))
+        if not current_user.is_admin_or_organizer:
             flash("You don't have permission to access this page.", "error")
             return redirect(url_for("main.index"))
         return f(*args, **kwargs)

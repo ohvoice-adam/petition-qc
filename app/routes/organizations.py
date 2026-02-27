@@ -2,14 +2,14 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 
 from app import db
-from app.models import Organization, admin_required
+from app.models import Organization, organizer_required
 
 bp = Blueprint("organizations", __name__)
 
 
 @bp.route("/")
 @login_required
-@admin_required
+@organizer_required
 def index():
     """List all organizations."""
     organizations = Organization.query.order_by(Organization.name).all()
@@ -18,7 +18,7 @@ def index():
 
 @bp.route("/new", methods=["GET", "POST"])
 @login_required
-@admin_required
+@organizer_required
 def new():
     """Create a new organization."""
     if request.method == "POST":
@@ -44,7 +44,7 @@ def new():
 
 @bp.route("/<int:id>/edit", methods=["GET", "POST"])
 @login_required
-@admin_required
+@organizer_required
 def edit(id):
     """Edit an organization."""
     org = db.session.get(Organization, id)
@@ -77,7 +77,7 @@ def edit(id):
 
 @bp.route("/<int:id>/delete", methods=["POST"])
 @login_required
-@admin_required
+@organizer_required
 def delete(id):
     """Delete an organization."""
     org = db.session.get(Organization, id)
